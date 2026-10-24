@@ -1,14 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-<g transform="translate(100,100) scale(5.885714) translate(-30,-30)">
-<rect x="30" y="30" width="140" height="140" rx="32" fill="#141217"/>
-<path d="M60 170 C58 120 60 80 100 72 C140 80 142 120 140 170 Z" fill="#9e1420"/>
-<path d="M78 170 l22 -22 l22 22 Z" fill="#f4f1ee"/>
-<path d="M92 170 l8 -14 l8 14 Z" fill="#141217"/>
-<ellipse cx="100" cy="112" rx="21" ry="26" fill="#f2d6c6"/>
-<path d="M77 108 C75 84 86 74 100 74 C114 74 125 84 123 108 L123 100 L77 100 Z" fill="#d42a35"/>
-<rect x="77" y="94" width="46" height="9" fill="#d42a35"/>
-<path d="M87 113 l8 -1.5" stroke="#b0121e" stroke-width="3" stroke-linecap="round"/>
-<path d="M105 111.5 l8 1.5" stroke="#b0121e" stroke-width="3" stroke-linecap="round"/>
-<path d="M96 126 h7" stroke="#a65a50" stroke-width="1.5" stroke-linecap="round"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8f2e8"/>
+      <stop offset="1" stop-color="#ede3d3"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#paper)"/>
+  <g fill="#b3121f">
+    <!-- top stroke: heavy start, thin dry tail -->
+    <path d="M262 352 C258 318 300 300 360 300 C460 298 560 292 650 300 C700 304 716 318 704 332 C640 336 520 344 400 352 C330 357 290 374 262 352 Z"/>
+    <!-- middle stroke -->
+    <path d="M318 484 C318 456 350 446 400 446 C480 444 560 446 618 456 C650 462 656 478 640 486 C580 488 480 490 400 498 C350 503 320 506 318 484 Z"/>
+    <!-- bottom stroke, rising slightly to the right -->
+    <path d="M286 650 C280 618 320 604 380 600 C480 594 580 590 668 600 C716 606 726 624 708 636 C630 636 520 644 400 656 C340 662 296 676 286 650 Z"/>
+    <!-- vertical stroke with a hooked flick at the bottom -->
+    <path d="M478 236 C512 228 540 244 540 280 C542 380 538 520 528 640 C522 712 508 760 474 790 C458 804 440 798 446 778 C468 720 472 650 474 560 C476 450 470 340 458 276 C452 252 460 240 478 236 Z"/>
+  </g>
+  <!-- seal dot -->
+  <circle cx="722" cy="742" r="46" fill="#b3121f"/>
 </svg>
