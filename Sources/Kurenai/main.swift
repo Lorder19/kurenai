@@ -21,7 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if Demo.isOn { startDemo(); return }
         if Self.anotherInstanceKeepsRunning() { NSApp.terminate(nil); return }
+        if AppMover.renameLegacyBundleIfNeeded() { return }
         if AppMover.offerMoveIfNeeded() { return }
+        AppMover.restoreLoginItem()
         buildPanels()
 
         monitor.onCopy = { [weak self] in self?.handleCopy($0) }
@@ -96,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let full = NSScreen.screens[0].frame
         let rect = "\(Int(origin.x - 30)),\(Int(full.maxY - origin.y - 440 - 40)),1000,520"
         try? rect.write(to: Demo.directory.appendingPathComponent("tour-rect"), atomically: true, encoding: .utf8)
-        // Plain backdrop so the recording shows Clippo, not whatever is on your screen.
+        // Plain backdrop so the recording shows Kurenai, not whatever is on your screen.
         let backdrop = NSWindow(contentRect: NSRect(x: origin.x - 30, y: origin.y - 40, width: 1000, height: 520),
                                 styleMask: .borderless, backing: .buffered, defer: false)
         backdrop.backgroundColor = NSColor(srgbRed: 0.93, green: 0.91, blue: 0.88, alpha: 1)
@@ -150,7 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Launching Clippo again (Spotlight, /Applications) opens settings, since there is no Dock icon to click.
+    /// Launching Kurenai again (Spotlight, /Applications) opens settings, since there is no Dock icon to click.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         openSettings()
         return false
@@ -165,7 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.onboardingWindow?.close()
             }
             let w = NSWindow(contentViewController: NSHostingController(rootView: view))
-            w.title = "Clippo"
+            w.title = "Kurenai"
             w.styleMask = [.titled, .closable]
             w.isReleasedWhenClosed = false
             w.center()
@@ -182,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openSettings() {
         if settingsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
-            w.title = L("Настройки Clippo")
+            w.title = L("Настройки Kurenai")
             w.styleMask = [.titled, .closable]
             w.isReleasedWhenClosed = false
             w.center()
@@ -253,21 +255,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func buildPanels() {
         historyPanel = FloatingPanel(
-            name: "Clippo.History", size: NSSize(width: 600, height: 480), minSize: NSSize(width: 420, height: 280),
+            name: "Kurenai.History", size: NSSize(width: 600, height: 480), minSize: NSSize(width: 420, height: 280),
             takesKey: true, closesOnResign: true,
             content: HistoryView(store: store, model: historyModel,
                                  onPick: { [weak self] in self?.pickFromHistory($0) },
                                  onClose: { [weak self] in self?.historyPanel.orderOut(nil) }))
 
         listPanel = FloatingPanel(
-            name: "Clippo.List", size: NSSize(width: 360, height: 400), minSize: NSSize(width: 280, height: 220),
+            name: "Kurenai.List", size: NSSize(width: 360, height: 400), minSize: NSSize(width: 280, height: 220),
             takesKey: true, closesOnResign: true,
             content: ListView(store: store, model: listModel,
                               onPick: { [weak self] in self?.pickFromList($0) },
                               onClose: { [weak self] in self?.listPanel.orderOut(nil) }))
 
         queuePanel = FloatingPanel(
-            name: "Clippo.Queue", size: NSSize(width: 320, height: 380), minSize: NSSize(width: 260, height: 200),
+            name: "Kurenai.Queue", size: NSSize(width: 320, height: 380), minSize: NSSize(width: 260, height: 200),
             takesKey: false, closesOnResign: false,
             content: QueueView(queue: queue, onHide: { [weak self] in self?.queue.deactivate() }))
         queuePanel.animationBehavior = .none
@@ -351,18 +353,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         write()
         monitor.ignoreCurrentChange()
         guard Paster.ensureAccessibility(prompt: false) else {
-            NSLog("Clippo: paste blocked, no Accessibility permission (text left on clipboard)")
+            NSLog("Kurenai: paste blocked, no Accessibility permission (text left on clipboard)")
             NSSound.beep()
             DispatchQueue.main.async { self.showOnboarding() }
             return
         }
         // Our synthetic ⌘V must not re-trigger the queue hotkey.
         pasteNextKey.setEnabled(false)
-        // macOS makes Clippo the active app while a panel is key; a ⌘V sent then lands in Clippo (no window → beep).
+        // macOS makes Kurenai the active app while a panel is key; a ⌘V sent then lands in Kurenai (no window → beep).
         // Hand focus back to where the user was and wait until it's really frontmost.
         let front = NSWorkspace.shared.frontmostApplication
         let target = (front != nil && front != .current) ? front : targetApp
-        // Remote desktop clients ignore modifier keys that don't come from a real keyboard, so Clippo can't
+        // Remote desktop clients ignore modifier keys that don't come from a real keyboard, so Kurenai can't
         // press Ctrl+V there. Put the text on the clipboard, go back to the session and ask for Ctrl+V.
         if Paster.isRemoteDesktop(target) {
             if NSApp.isActive { NSApp.deactivate(); target?.activate() }
@@ -496,7 +498,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(menu, L("Проверить обновления…"), nil, #selector(checkUpdates))
         add(menu, L("Показать файл данных"), nil, #selector(revealData))
         menu.addItem(.separator())
-        add(menu, L("Выйти из Clippo"), nil, #selector(quit))
+        add(menu, L("Выйти из Kurenai"), nil, #selector(quit))
     }
 
     @discardableResult

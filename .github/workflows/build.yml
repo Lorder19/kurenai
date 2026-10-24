@@ -13,6 +13,6 @@ jobs:
       - name: Build universal app
         run: ./build.sh
       - name: Check both architectures
-        run: lipo -archs build/Clippo.app/Contents/MacOS/Clippo
+        run: lipo -archs build/Kurenai.app/Contents/MacOS/Kurenai
       - name: Check translation files
         run: plutil -lint Resources/*/Localizable.strings

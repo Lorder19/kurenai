@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Questions and ideas
-    url: https://github.com/Lorder19/clippo/discussions
+    url: https://github.com/Lorder19/kurenai/discussions
     about: Not sure it's a bug? Ask in Discussions.
   - name: Security problem
-    url: https://github.com/Lorder19/clippo/security/advisories/new
+    url: https://github.com/Lorder19/kurenai/security/advisories/new
     about: Please report privately, not as a public issue.

@@ -1,14 +1,14 @@
 import AppKit
 
-/// Screenshot mode: `Clippo -ClippoDemo history|list|queue|settings|onboarding`; `stress` records copies for load tests.
+/// Screenshot mode: `Kurenai -KurenaiDemo history|list|queue|settings|onboarding`; `stress` records copies for load tests.
 /// Runs on throwaway sample data in a temp folder, never reads or records the real clipboard,
 /// registers no shortcuts and leaves the real history and settings untouched.
 enum Demo {
-    static let panel = UserDefaults.standard.string(forKey: "ClippoDemo")
+    static let panel = UserDefaults.standard.string(forKey: "KurenaiDemo")
     static var isOn: Bool { panel != nil }
 
     static let directory: URL = {
-        let d = FileManager.default.temporaryDirectory.appendingPathComponent("ClippoDemo", isDirectory: true)
+        let d = FileManager.default.temporaryDirectory.appendingPathComponent("KurenaiDemo", isDirectory: true)
         try? FileManager.default.removeItem(at: d)
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
         return d
@@ -31,7 +31,7 @@ enum Demo {
         ("Invoice #2048 is due on Friday, 31 October", 40),
         ("git commit -m \"Release 1.0\"", 300),
         ("Thanks for reaching out! I'll get back to you by tomorrow.\nBest regards,\nAlex", 3600),
-        ("https://lorder19.github.io/clippo/", 5400),
+        ("https://lorder19.github.io/kurenai/", 5400),
         ("SELECT name, email FROM users WHERE active = 1;", 9000),
         ("221B Baker Street, London NW1 6XE", 90_000),
         ("#d42a35", 180_000),

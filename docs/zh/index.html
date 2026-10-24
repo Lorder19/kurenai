@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clippo，Mac 剪贴板历史工具</title>
+<title>Kurenai，Mac 剪贴板历史工具</title>
 <meta name="description" content="免费开源的 macOS 剪贴板管理工具。剪贴板历史、常用短语列表和粘贴队列。不保存密码，历史加密存储，无需账号。">
-<link rel="alternate" hreflang="en" href="https://lorder19.github.io/clippo/">
-<link rel="alternate" hreflang="ru" href="https://lorder19.github.io/clippo/ru/">
-<link rel="alternate" hreflang="zh-Hans" href="https://lorder19.github.io/clippo/zh/">
-<link rel="alternate" hreflang="x-default" href="https://lorder19.github.io/clippo/">
+<link rel="alternate" hreflang="en" href="https://lorder19.github.io/kurenai/">
+<link rel="alternate" hreflang="ru" href="https://lorder19.github.io/kurenai/ru/">
+<link rel="alternate" hreflang="zh-Hans" href="https://lorder19.github.io/kurenai/zh/">
+<link rel="alternate" hreflang="x-default" href="https://lorder19.github.io/kurenai/">
 <link rel="icon" href="../icon.png">
-<meta property="og:title" content="Clippo">
+<meta property="og:title" content="Kurenai">
 <meta property="og:description" content="Mac 剪贴板历史工具。小巧、免费、开源。">
-<meta property="og:image" content="https://lorder19.github.io/clippo/social.png">
+<meta property="og:image" content="https://lorder19.github.io/kurenai/social.png">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
@@ -120,21 +120,21 @@
 <div class="wrap">
   <nav class="langs"><a href="../">English</a><a href="../ru/">Русский</a><a href="../zh/" aria-current="page">中文</a></nav>
   <header>
-    <img src="../icon.png" alt="Clippo icon">
+    <img src="../icon.png" alt="Kurenai icon">
     <div>
-      <h1>Clippo</h1>
+      <h1>Kurenai</h1>
       <p class="lede">Mac 剪贴板历史工具。小巧、免费、开源。</p>
     </div>
   </header>
   <div class="get">
-    <a class="btn" href="https://github.com/Lorder19/clippo/releases/latest">下载 macOS 版</a>
+    <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest">下载 macOS 版</a>
     <span class="meta">macOS 14+，支持 Apple Silicon 和 Intel，约 2 MB</span>
-    <a href="https://github.com/Lorder19/clippo">GitHub 源码</a>
+    <a href="https://github.com/Lorder19/kurenai">GitHub 源码</a>
   </div>
 
-  <p class="note">我用了好几年 CleanClip，直到一次 macOS 更新后它开始崩溃。试过的其他工具要么要订阅，要么功能多到用不过来。Clippo 记住你复制的内容，按几个键就能粘贴回去，其余时间不打扰你。</p>
+  <p class="note">我用了好几年 CleanClip，直到一次 macOS 更新后它开始崩溃。试过的其他工具要么要订阅，要么功能多到用不过来。Kurenai 记住你复制的内容，按几个键就能粘贴回去，其余时间不打扰你。</p>
 
-  <img class="demo" src="../demo.gif" width="800" alt="Clippo：历史、搜索和粘贴队列">
+  <img class="demo" src="../demo.gif" width="800" alt="Kurenai：历史、搜索和粘贴队列">
 
   <div class="play" id="play">
     <div class="play-head"><b>在这里试试</b><span>点击一行复制，然后在右侧输入框按 <kbd id="k-hist">⌘;</kbd></span></div>
@@ -174,7 +174,7 @@
     <p><kbd>⌘I</kbd> 打开常用内容列表，比如回复模板和地址。按数字粘贴对应一行。</p>
     <p><kbd>⌘'</kbd> 开启粘贴队列。连续复制几条，每按一次 <kbd>⌘V</kbd> 粘贴下一条。<kbd>⇧⌘C</kbd> 把选中的一列按行拆开，适合把表格里的一列填进网页表单。</p>
     <div class="shots">
-      <img src="../screenshots/history.png" width="560" alt="Clippo 历史窗口">
+      <img src="../screenshots/history.png" width="560" alt="Kurenai 历史窗口">
       <img src="../screenshots/queue.png" width="260" alt="粘贴队列窗口">
     </div>
   </section>
@@ -185,37 +185,37 @@
       <li>从密码管理器（1Password、Bitwarden、Apple 密码等会标记为机密的应用）复制的密码永远不会被保存。</li>
       <li>你可以选择忽略哪些应用。“钥匙串访问”和“密码”默认就在列表里。</li>
       <li>历史和图片在磁盘上加密存储。说实话：密钥就放在旁边，你的账户可以读取，所以它防的是文件泄露，而不是坐在你 Mac 前的人。</li>
-      <li>Clippo 的窗口被标记为私密：macOS 截图会跳过它们，在 Telegram 共享屏幕时也看不到。少数录屏工具会忽略这个标记，介意的话请自己确认一下。</li>
+      <li>Kurenai 的窗口被标记为私密：macOS 截图会跳过它们，在 Telegram 共享屏幕时也看不到。少数录屏工具会忽略这个标记，介意的话请自己确认一下。</li>
       <li>没有账号，没有统计。唯一的网络请求是检查更新，默认关闭。</li>
     </ul>
   </section>
 
   <section>
     <h2>安装</h2>
-    <p>用 Homebrew：<code>brew install --cask lorder19/tap/clippo</code>。或者手动安装：</p>
+    <p>用 Homebrew：<code>brew install --cask lorder19/tap/kurenai</code>。或者手动安装：</p>
     <ol class="steps">
-      <li>下载 <b>Clippo.zip</b>，解压后把 Clippo 拖进“应用程序”。</li>
+      <li>下载 <b>Kurenai.zip</b>，解压后把 Kurenai 拖进“应用程序”。</li>
       <li>打开它。macOS 会提示开发者身份不明，因为我还没付钱给 Apple 买证书。打开“系统设置 → 隐私与安全性”，点击<b>“仍要打开”</b>。</li>
-      <li>按提示允许“辅助功能”权限。Clippo 只用它来替你按 ⌘V。</li>
+      <li>按提示允许“辅助功能”权限。Kurenai 只用它来替你按 ⌘V。</li>
     </ol>
   </section>
 
   <section>
     <h2>常见问题</h2>
     <details><summary>为什么不直接用 macOS Tahoe 自带的剪贴板历史？</summary>
-      <p>它适合找回复制过的东西。Clippo 则是为粘贴设计的：编号条目、常用列表和粘贴队列，全部用键盘操作。</p></details>
+      <p>它适合找回复制过的东西。Kurenai 则是为粘贴设计的：编号条目、常用列表和粘贴队列，全部用键盘操作。</p></details>
     <details><summary>快捷键有时没反应</summary>
-      <p>当密码输入框处于焦点时，macOS 会开启安全输入，阻止所有应用的全局快捷键。有些密码管理器忘了关闭它。切换应用或重启密码管理器即可解决。出现这种情况时 Clippo 会在菜单里提示。</p></details>
+      <p>当密码输入框处于焦点时，macOS 会开启安全输入，阻止所有应用的全局快捷键。有些密码管理器忘了关闭它。切换应用或重启密码管理器即可解决。出现这种情况时 Kurenai 会在菜单里提示。</p></details>
     <details><summary>在菜单栏找不到图标</summary>
-      <p>在带刘海的 MacBook 上，多余的图标会被挡住。快捷键照常可用，从聚焦搜索再次打开 Clippo 会弹出设置。</p></details>
+      <p>在带刘海的 MacBook 上，多余的图标会被挡住。快捷键照常可用，从聚焦搜索再次打开 Kurenai 会弹出设置。</p></details>
     <details><summary>怎么卸载？</summary>
-      <p>退出 Clippo，删除应用，再删除 ~/Library/Application Support/Clippo 文件夹。</p></details>
+      <p>退出 Kurenai，删除应用，再删除 ~/Library/Application Support/Kurenai 文件夹。</p></details>
     <details><summary>会一直免费吗？</summary>
       <p>是的，这里介绍的功能会一直免费。以后可能会推出付费版，加入保留格式粘贴等功能，用来支付 Apple 开发者账号的费用。</p></details>
   </section>
 
   <footer>
-    Clippo 采用 MIT 许可证。发现问题或想要新功能？<a href="https://github.com/Lorder19/clippo/issues">在 GitHub 上提出</a>。
+    Kurenai 采用 MIT 许可证。发现问题或想要新功能？<a href="https://github.com/Lorder19/kurenai/issues">在 GitHub 上提出</a>。
   </footer>
 </div>
 

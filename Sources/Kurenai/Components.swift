@@ -21,7 +21,7 @@ enum ClipText {
 
     private static let dayMonth: DateFormatter = {
         let f = DateFormatter()
-        // Follow the UI language Clippo actually shows, not a hard-coded one.
+        // Follow the UI language Kurenai actually shows, not a hard-coded one.
         f.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
         f.setLocalizedDateFormatFromTemplate("dMMM")
         return f

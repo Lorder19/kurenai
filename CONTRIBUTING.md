@@ -1,17 +1,17 @@
 # Contributing
 
-Thanks for wanting to help. Clippo is small on purpose, so before writing a big feature it's worth opening an issue to talk about it first.
+Thanks for wanting to help. Kurenai is small on purpose, so before writing a big feature it's worth opening an issue to talk about it first.
 
 ## Building
 
 ```bash
-./build.sh            # builds build/Clippo.app
+./build.sh            # builds build/Kurenai.app
 ./build.sh install    # also copies it to /Applications and restarts it
 ```
 
 You need the Xcode command line tools and macOS 14 or newer. See the README for the signing certificate trick that keeps Accessibility permission across rebuilds.
 
-`Clippo -ClippoDemo history` (also `list`, `queue`, `settings`, `onboarding`) runs on sample data in a temp folder. Handy for screenshots and for poking at the UI without touching your own history.
+`Kurenai -KurenaiDemo history` (also `list`, `queue`, `settings`, `onboarding`) runs on sample data in a temp folder. Handy for screenshots and for poking at the UI without touching your own history.
 
 ## Code
 

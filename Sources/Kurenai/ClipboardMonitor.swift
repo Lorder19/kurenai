@@ -15,7 +15,7 @@ final class ClipboardMonitor {
         timer = t
     }
 
-    /// Call after Clippo itself writes to the pasteboard so its own writes aren't recorded as copies.
+    /// Call after Kurenai itself writes to the pasteboard so its own writes aren't recorded as copies.
     func ignoreCurrentChange() {
         lastChange = NSPasteboard.general.changeCount
     }

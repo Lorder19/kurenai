@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (October 2026)
+
+- Clippo is now Kurenai (紅, "crimson"). Two other clipboard apps on the Mac App Store were already called Clippo, so it was time. Same app, same shortcuts.
+- New icon, and a new menu bar icon.
+- Your history, lists and settings move over on their own. If you update from inside the app, it renames itself to Kurenai.app and keeps its Accessibility permission.
+
 ## 0.3.6 (October 2026)
 
 - Only one Clippo runs at a time. A second copy, for example one started from Downloads while the installed one is running, now steps aside instead of recording every copy twice.

@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clippo, clipboard history for the Mac</title>
+<title>Kurenai, clipboard history for the Mac</title>
 <meta name="description" content="Free, open-source clipboard manager for macOS. History, saved snippets and a paste queue. Skips passwords, encrypted on disk, no account.">
-<link rel="alternate" hreflang="en" href="https://lorder19.github.io/clippo/">
-<link rel="alternate" hreflang="ru" href="https://lorder19.github.io/clippo/ru/">
-<link rel="alternate" hreflang="zh-Hans" href="https://lorder19.github.io/clippo/zh/">
-<link rel="alternate" hreflang="x-default" href="https://lorder19.github.io/clippo/">
+<link rel="alternate" hreflang="en" href="https://lorder19.github.io/kurenai/">
+<link rel="alternate" hreflang="ru" href="https://lorder19.github.io/kurenai/ru/">
+<link rel="alternate" hreflang="zh-Hans" href="https://lorder19.github.io/kurenai/zh/">
+<link rel="alternate" hreflang="x-default" href="https://lorder19.github.io/kurenai/">
 <meta name="google-site-verification" content="4caM0wsNIhxIX8n1iZavVsmcZCDrMV4bq5Y9cVzSwYw" />
 <link rel="icon" href="icon.png">
-<meta property="og:title" content="Clippo">
+<meta property="og:title" content="Kurenai">
 <meta property="og:description" content="Clipboard history for the Mac. Small, free, open source.">
-<meta property="og:image" content="https://lorder19.github.io/clippo/social.png">
+<meta property="og:image" content="https://lorder19.github.io/kurenai/social.png">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
@@ -121,21 +121,21 @@
 <div class="wrap">
   <nav class="langs"><a href="./" aria-current="page">English</a><a href="ru/">Русский</a><a href="zh/">中文</a></nav>
   <header>
-    <img src="icon.png" alt="Clippo icon">
+    <img src="icon.png" alt="Kurenai icon">
     <div>
-      <h1>Clippo</h1>
+      <h1>Kurenai</h1>
       <p class="lede">Clipboard history for the Mac. Small, free, open source.</p>
     </div>
   </header>
   <div class="get">
-    <a class="btn" href="https://github.com/Lorder19/clippo/releases/latest">Download for macOS</a>
+    <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest">Download for macOS</a>
     <span class="meta">macOS 14+, Apple Silicon and Intel, about 2 MB</span>
-    <a href="https://github.com/Lorder19/clippo">Source on GitHub</a>
+    <a href="https://github.com/Lorder19/kurenai">Source on GitHub</a>
   </div>
 
-  <p class="note">I used CleanClip for years until a macOS update broke it. Everything else I tried was either a subscription or a Swiss army knife. Clippo keeps what you copy, lets you paste it back with a couple of keys, and stays out of the way the rest of the time.</p>
+  <p class="note">I used CleanClip for years until a macOS update broke it. Everything else I tried was either a subscription or a Swiss army knife. Kurenai keeps what you copy, lets you paste it back with a couple of keys, and stays out of the way the rest of the time.</p>
 
-  <img class="demo" src="demo.gif" width="800" alt="Clippo: browsing history, searching, and the paste queue pasting items one by one">
+  <img class="demo" src="demo.gif" width="800" alt="Kurenai: browsing history, searching, and the paste queue pasting items one by one">
 
   <div class="play" id="play">
     <div class="play-head"><b>Try it right here</b><span>Click a line to copy it, then press <kbd id="k-hist">⌘;</kbd> in the box</span></div>
@@ -175,7 +175,7 @@
     <p><kbd>⌘I</kbd> opens saved lists for things you paste a lot, like replies or addresses. A digit pastes a line.</p>
     <p><kbd>⌘'</kbd> starts the paste queue. Copy a few things, then each <kbd>⌘V</kbd> pastes the next one. <kbd>⇧⌘C</kbd> splits a selected column into lines, which is great for moving a spreadsheet column into a web form.</p>
     <div class="shots">
-      <img src="screenshots/history.png" width="560" alt="Clippo history window">
+      <img src="screenshots/history.png" width="560" alt="Kurenai history window">
       <img src="screenshots/queue.png" width="260" alt="Paste queue window">
     </div>
   </section>
@@ -186,37 +186,37 @@
       <li>Passwords copied from password managers (1Password, Bitwarden, Apple Passwords and others that mark them as concealed) are never saved.</li>
       <li>You pick apps to ignore. Keychain Access and Passwords are on the list from the start.</li>
       <li>History and images are encrypted on disk. Honest caveat: the key is stored next to them for your user account, so this stops a leaked file, not someone sitting at your Mac.</li>
-      <li>Clippo's windows are marked private. macOS screenshots skip them, and they stay hidden when you share your screen in Telegram. A few recording apps ignore that flag, so check yours if it matters.</li>
+      <li>Kurenai's windows are marked private. macOS screenshots skip them, and they stay hidden when you share your screen in Telegram. A few recording apps ignore that flag, so check yours if it matters.</li>
       <li>No account, no analytics. The only network request is an update check, and it's off until you enable it.</li>
     </ul>
   </section>
 
   <section>
     <h2>Install</h2>
-    <p>With Homebrew: <code>brew install --cask lorder19/tap/clippo</code>. Or by hand:</p>
+    <p>With Homebrew: <code>brew install --cask lorder19/tap/kurenai</code>. Or by hand:</p>
     <ol class="steps">
-      <li>Download <b>Clippo.zip</b>, unzip it and drag Clippo into Applications.</li>
+      <li>Download <b>Kurenai.zip</b>, unzip it and drag Kurenai into Applications.</li>
       <li>Open it. macOS will complain about an unidentified developer because I don't pay Apple for a certificate yet. Open System Settings → Privacy &amp; Security and click <b>Open Anyway</b>.</li>
-      <li>Allow Accessibility when asked. Clippo uses it only to press ⌘V for you.</li>
+      <li>Allow Accessibility when asked. Kurenai uses it only to press ⌘V for you.</li>
     </ol>
   </section>
 
   <section>
     <h2>Questions</h2>
     <details><summary>Why not just use the clipboard history in macOS Tahoe?</summary>
-      <p>It's fine for finding something you copied. Clippo is built around pasting: numbered items, saved lists and the paste queue, all from the keyboard.</p></details>
+      <p>It's fine for finding something you copied. Kurenai is built around pasting: numbered items, saved lists and the paste queue, all from the keyboard.</p></details>
     <details><summary>A shortcut sometimes does nothing</summary>
-      <p>When a password field is focused, macOS turns on Secure Input and blocks global shortcuts for every app. Some password managers forget to turn it off. Switching apps, or restarting the password manager, fixes it. Clippo shows a warning in its menu when this happens.</p></details>
+      <p>When a password field is focused, macOS turns on Secure Input and blocks global shortcuts for every app. Some password managers forget to turn it off. Switching apps, or restarting the password manager, fixes it. Kurenai shows a warning in its menu when this happens.</p></details>
     <details><summary>I can't find the menu bar icon</summary>
-      <p>On MacBooks with a notch, extra icons can hide behind it. The shortcuts still work, and opening Clippo again from Spotlight brings up Settings.</p></details>
+      <p>On MacBooks with a notch, extra icons can hide behind it. The shortcuts still work, and opening Kurenai again from Spotlight brings up Settings.</p></details>
     <details><summary>How do I uninstall it?</summary>
-      <p>Quit Clippo, delete the app, then delete ~/Library/Application Support/Clippo.</p></details>
+      <p>Quit Kurenai, delete the app, then delete ~/Library/Application Support/Kurenai.</p></details>
     <details><summary>Will it stay free?</summary>
       <p>Yes, everything you see here stays free. I might add a paid version later with extras like keeping rich text formatting, to pay for an Apple developer account.</p></details>
   </section>
 
   <footer>
-    Switching from <a href="cleanclip-alternative/">CleanClip</a> or <a href="maccy-alternative/">Maccy</a>? Clippo is MIT licensed. Found a bug or want a feature? <a href="https://github.com/Lorder19/clippo/issues">Open an issue</a>.
+    Switching from <a href="cleanclip-alternative/">CleanClip</a> or <a href="maccy-alternative/">Maccy</a>? Kurenai is MIT licensed. Found a bug or want a feature? <a href="https://github.com/Lorder19/kurenai/issues">Open an issue</a>.
   </footer>
 </div>
 

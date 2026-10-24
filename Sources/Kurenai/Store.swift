@@ -31,11 +31,11 @@ final class Store: ObservableObject {
     static let directory: URL = {
         if Demo.isOn { return Demo.directory }
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let dir = base.appendingPathComponent("Clippo", isDirectory: true)
-        // The app used to be called Clipo; carry its data over once.
-        let old = base.appendingPathComponent("Clipo", isDirectory: true)
-        if !FileManager.default.fileExists(atPath: dir.path), FileManager.default.fileExists(atPath: old.path) {
-            try? FileManager.default.moveItem(at: old, to: dir)
+        let dir = base.appendingPathComponent("Kurenai", isDirectory: true)
+        // The app used to be called Clippo, and Clipo before that; carry its data over once.
+        for name in ["Clippo", "Clipo"] where !FileManager.default.fileExists(atPath: dir.path) {
+            let old = base.appendingPathComponent(name, isDirectory: true)
+            if FileManager.default.fileExists(atPath: old.path) { try? FileManager.default.moveItem(at: old, to: dir) }
         }
         return dir
     }()

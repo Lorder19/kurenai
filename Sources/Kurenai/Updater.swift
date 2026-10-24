@@ -2,10 +2,10 @@ import AppKit
 import Security
 
 /// Looks for a newer GitHub release and, when asked, installs it in place.
-/// The automatic daily check is opt-in: Clippo makes no network requests unless you ask for them.
+/// The automatic daily check is opt-in: Kurenai makes no network requests unless you ask for them.
 final class Updater: ObservableObject {
     static let shared = Updater()
-    static let repo = "Lorder19/clippo"
+    static let repo = "Lorder19/kurenai"
 
     struct Release { let version: String; let page: URL; let zip: URL? }
 
@@ -54,7 +54,7 @@ final class Updater: ObservableObject {
                 let version = tag.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
                 if Self.isNewer(version, than: self.current) {
                     let assets = json["assets"] as? [[String: Any]] ?? []
-                    let zip = assets.first { ($0["name"] as? String) == "Clippo.zip" }?["browser_download_url"] as? String
+                    let zip = assets.first { ($0["name"] as? String) == "Kurenai.zip" }?["browser_download_url"] as? String
                     found = Release(version: version, page: page, zip: zip.flatMap(URL.init(string:)))
                     result = String(format: L("Доступна версия %@"), version)
                 } else {
@@ -100,8 +100,8 @@ final class Updater: ObservableObject {
     func confirmInstall(_ release: Release) {
         NSApp.activate()
         let alert = NSAlert()
-        alert.messageText = String(format: L("Обновить Clippo до версии %@?"), release.version)
-        alert.informativeText = L("Clippo скачает новую версию с GitHub, проверит подпись, заменит себя и перезапустится. История и настройки сохранятся.")
+        alert.messageText = String(format: L("Обновить Kurenai до версии %@?"), release.version)
+        alert.informativeText = L("Kurenai скачает новую версию с GitHub, проверит подпись, заменит себя и перезапустится. История и настройки сохранятся.")
         alert.addButton(withTitle: L("Обновить"))
         alert.addButton(withTitle: L("Что нового"))
         alert.addButton(withTitle: L("Отмена"))
@@ -129,14 +129,14 @@ final class Updater: ObservableObject {
     }
 
     private static func unpack(_ zip: URL) throws -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ClippoUpdate-\(UUID().uuidString)")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("KurenaiUpdate-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let ditto = Process()
         ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         ditto.arguments = ["-x", "-k", zip.path, dir.path]
         try ditto.run()
         ditto.waitUntilExit()
-        let app = dir.appendingPathComponent("Clippo.app")
+        let app = dir.appendingPathComponent("Kurenai.app")
         guard ditto.terminationStatus == 0, FileManager.default.fileExists(atPath: app.path) else {
             throw CocoaError(.fileReadCorruptFile)
         }

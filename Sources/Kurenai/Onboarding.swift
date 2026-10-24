@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import SwiftUI
 
-/// First-run window: what Clippo does, the main shortcuts and why it needs Accessibility.
+/// First-run window: what Kurenai does, the main shortcuts and why it needs Accessibility.
 struct OnboardingView: View {
     let onDone: () -> Void
     @ObservedObject private var settings = Settings.shared
@@ -14,8 +14,8 @@ struct OnboardingView: View {
             HStack(spacing: 14) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L("Добро пожаловать в Clippo")).font(.title2.bold())
-                    Text(L("Clippo запоминает всё, что вы копируете, и вставляет обратно в одно нажатие."))
+                    Text(L("Добро пожаловать в Kurenai")).font(.title2.bold())
+                    Text(L("Kurenai запоминает всё, что вы копируете, и вставляет обратно в одно нажатие."))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -24,7 +24,7 @@ struct OnboardingView: View {
                 tip(settings.shortcut(.history).label, L("история скопированного, цифры вставляют запись"))
                 tip(settings.shortcut(.list).label, L("свои списки фраз для частой вставки"))
                 tip(settings.shortcut(.queue).label, L("Paste Queue: копируйте подряд, ⌘V вставляет по очереди"))
-                Text(L("Значок Clippo живёт в строке меню. Сочетания меняются в настройках."))
+                Text(L("Значок Kurenai живёт в строке меню. Сочетания меняются в настройках."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -35,13 +35,13 @@ struct OnboardingView: View {
                             .foregroundStyle(granted ? .green : .orange).font(.title3)
                         Text(granted ? L("Универсальный доступ включён") : L("Нужен Универсальный доступ")).font(.headline)
                     }
-                    Text(L("Без него Clippo не может нажать ⌘V за вас, и выбранный текст останется только в буфере. Clippo не читает ваш ввод и ничего никуда не отправляет: история хранится только на этом Mac."))
+                    Text(L("Без него Kurenai не может нажать ⌘V за вас, и выбранный текст останется только в буфере. Kurenai не читает ваш ввод и ничего никуда не отправляет: история хранится только на этом Mac."))
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     if !granted {
-                        Text(L("Откройте настройки и включите переключатель напротив Clippo. Окно само заметит, когда доступ появится."))
+                        Text(L("Откройте настройки и включите переключатель напротив Kurenai. Окно само заметит, когда доступ появится."))
                             .font(.callout).fixedSize(horizontal: false, vertical: true)
                         Button(L("Открыть Универсальный доступ")) {
-                            Paster.ensureAccessibility(prompt: true) // adds Clippo to the list
+                            Paster.ensureAccessibility(prompt: true) // adds Kurenai to the list
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
                         }
                         .controlSize(.large)

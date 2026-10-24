@@ -154,7 +154,7 @@ struct HistoryView: View {
     }
 }
 
-/// Modal prompts activate Clippo; hiding afterwards hands focus back to the app you were working in.
+/// Modal prompts activate Kurenai; hiding afterwards hands focus back to the app you were working in.
 enum Prompt {
     static func text(title: String, initial: String = "") -> String? {
         NSApp.activate()

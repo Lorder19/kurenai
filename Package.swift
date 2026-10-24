@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "Clippo",
+    name: "Kurenai",
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(
-            name: "Clippo",
-            path: "Sources/Clippo",
+            name: "Kurenai",
+            path: "Sources/Kurenai",
             swiftSettings: [.unsafeFlags(["-Osize"])]
         )
     ]

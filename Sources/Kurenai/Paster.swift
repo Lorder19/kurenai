@@ -22,8 +22,8 @@ enum Paster {
         if let tiff = NSImage(data: png)?.tiffRepresentation { pb.setData(tiff, forType: .tiff) }
     }
 
-    /// With a target, ⌘V is delivered straight to that process: right after a Clippo panel closes, the
-    /// WindowServer still routes keys to Clippo, which has no window to handle them and beeps.
+    /// With a target, ⌘V is delivered straight to that process: right after a Kurenai panel closes, the
+    /// WindowServer still routes keys to Kurenai, which has no window to handle them and beeps.
     static func sendCommandV(to target: NSRunningApplication? = nil) { sendCommand(9, to: target) }
     static func sendCommandC() { sendCommand(8, to: nil) }
 

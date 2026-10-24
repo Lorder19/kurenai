@@ -12,8 +12,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Clippo version
-      description: Clippo menu > Settings, or the zip you downloaded.
+      label: Kurenai version
+      description: Kurenai menu > Settings, or the zip you downloaded.
       placeholder: "0.3.1"
     validations:
       required: true

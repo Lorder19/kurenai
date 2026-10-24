@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import Security
 
-/// AES-GCM encryption for Clippo's data files, so the history isn't readable as plain text
+/// AES-GCM encryption for Kurenai's data files, so the history isn't readable as plain text
 /// by anything that just scans or uploads files.
 enum Vault {
     private static let magic = Data("CLIPOENC1".utf8)
