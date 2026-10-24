@@ -14,6 +14,8 @@
 
 <p align="center"><img src="docs/demo.gif" width="720" alt="Kurenai history, search and paste queue"></p>
 
+<p align="center"><img src="docs/mascot/kurenai.png" width="180" alt="Kurenai, the mascot"></p>
+
 I used CleanClip for years. After a macOS update it started crashing, and the alternatives I tried either wanted a subscription or did too much. So I wrote my own. Kurenai does three things and tries to stay out of the way. It used to be called Clippo.
 
 ## What it does

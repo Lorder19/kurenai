@@ -114,11 +114,38 @@
   .langs a { color: var(--soft); text-decoration: none; margin-left: 10px; }
   .langs a[aria-current] { color: var(--ink); font-weight: 600; }
   .wrap { position: relative; }
+
+  /* mascot */
+  .top { display: grid; grid-template-columns: 1fr 250px; gap: 0 24px; }
+  .mascot { grid-column: 2; grid-row: 1 / span 3; position: relative; margin: 36px 0 -40px; align-self: end; }
+  .mascot img { display: block; width: 100%; height: auto; transform-origin: 50% 100%; animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.006, 1.012); } }
+  .say { position: absolute; right: 72%; top: 50%; width: max-content; max-width: 200px; background: var(--card); border: 1px solid var(--line);
+         border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+  .say::after { content: ""; position: absolute; right: -7px; top: 14px; width: 12px; height: 12px; background: var(--card);
+                border: 1px solid var(--line); border-width: 1px 1px 0 0; transform: rotate(45deg); }
+  .kr { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; min-height: 52px; }
+  .kr img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; flex: none;
+            border: 2px solid var(--line); transition: transform .2s; }
+  .kr img.pop { transform: scale(1.12); }
+  .kr span { font-size: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+  .priv { display: grid; grid-template-columns: 1fr 170px; gap: 24px; align-items: start; }
+  .priv figure { margin: 0; text-align: center; }
+  .priv figure img { width: 170px; height: 170px; border-radius: 18px; object-fit: cover; object-position: 50% 10%; display: block; }
+  .priv figcaption { font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--red); }
+  @media (max-width: 760px) {
+    .top { grid-template-columns: 1fr; }
+    .mascot { display: none; }
+    .priv { grid-template-columns: 1fr; }
+    .priv figure { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .mascot img { animation: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav class="langs"><a href="../">English</a><a href="../ru/">Русский</a><a href="../zh/" aria-current="page">中文</a></nav>
+  <div class="top">
   <header>
     <img src="../icon.png" alt="Kurenai icon">
     <div>
@@ -133,6 +160,8 @@
   </div>
 
   <p class="note">我用了好几年 CleanClip，直到一次 macOS 更新后它开始崩溃。试过的其他工具要么要订阅，要么功能多到用不过来。Kurenai 记住你复制的内容，按几个键就能粘贴回去，其余时间不打扰你。</p>
+    <figure class="mascot"><img src="../mascot/kurenai.png" width="500" height="952" alt="Kurenai 吉祥物：红发女子，黑色西装，肩扛武士刀"><div class="say">你复制的一切，我都记得。</div></figure>
+  </div>
 
   <img class="demo" src="../demo.gif" width="800" alt="Kurenai：历史、搜索和粘贴队列">
 
@@ -164,6 +193,7 @@
         </div>
         <ol class="queue" id="queue"></ol>
         <p class="hint" id="hint">开启粘贴队列，复制几行，然后在这里一次次按 ⌘V。</p>
+        <div class="kr" aria-live="polite"><img id="kr-face" src="../mascot/neutral.jpg" alt=""><span id="kr-say">点左边任意一行复制，我会记住。</span></div>
       </div>
     </div>
   </div>
@@ -173,6 +203,7 @@
     <p><kbd>⌘;</kbd> 打开历史：文字和图片，最新的在前，可搜索。<kbd>⌘1</kbd> 到 <kbd>⌘9</kbd> 直接粘贴前九条，不用碰鼠标。</p>
     <p><kbd>⌘I</kbd> 打开常用内容列表，比如回复模板和地址。按数字粘贴对应一行。</p>
     <p><kbd>⌘'</kbd> 开启粘贴队列。连续复制几条，每按一次 <kbd>⌘V</kbd> 粘贴下一条。<kbd>⇧⌘C</kbd> 把选中的一列按行拆开，适合把表格里的一列填进网页表单。</p>
+    <img class="demo" src="../split.gif" width="800" height="450" loading="lazy" alt="Kurenai 把选中的一列切成四行放进粘贴队列">
     <div class="shots">
       <img src="../screenshots/history.png" width="560" alt="Kurenai 历史窗口">
       <img src="../screenshots/queue.png" width="260" alt="粘贴队列窗口">
@@ -181,6 +212,7 @@
 
   <section>
     <h2>你的数据只属于你</h2>
+    <div class="priv">
     <ul class="plain">
       <li>从密码管理器（1Password、Bitwarden、Apple 密码等会标记为机密的应用）复制的密码永远不会被保存。</li>
       <li>你可以选择忽略哪些应用。“钥匙串访问”和“密码”默认就在列表里。</li>
@@ -188,6 +220,7 @@
       <li>Kurenai 的窗口被标记为私密：macOS 截图会跳过它们，在 Telegram 共享屏幕时也看不到。少数录屏工具会忽略这个标记，介意的话请自己确认一下。</li>
       <li>没有账号，没有统计。唯一的网络请求是检查更新，默认关闭。</li>
     </ul>
+    <figure><img src="../mascot/glare.jpg" alt=""><figcaption>密码过不了我这关。</figcaption></figure></div>
   </section>
 
   <section>
@@ -230,12 +263,20 @@
   const histEl = document.getElementById('hist'), queueEl = document.getElementById('queue'), qBtn = document.getElementById('b-queue');
   let history = [], queue = [], cursor = 0, sel = 0, queueOn = false;
 
+  const KR = {"copied": "记住了。在右边按 ⌘; 就能找到。", "qon": "队列已开启。复制几行，我按顺序帮你存着。", "left": "还剩 {n} 条，继续按 ⌘V。", "done": "全部粘贴完了。还不错。", "qoff": "这是普通粘贴。先开启队列。", "none": "这里没有这个。", "clear": "清空了。"}, krFace = document.getElementById('kr-face'), krSay = document.getElementById('kr-say');
+  function react(face, text) {
+    krFace.src = '../mascot/' + face + '.jpg'; krSay.textContent = mac ? text : text.replace(/⌘/g, 'Ctrl+');
+    krFace.classList.remove('pop'); void krFace.offsetWidth; krFace.classList.add('pop');
+    setTimeout(() => krFace.classList.remove('pop'), 220);
+  }
+
   function copy(text, el) {
     history = [text, ...history.filter(t => t !== text)].slice(0, 30);
     if (queueOn) queue.push(text);
     navigator.clipboard?.writeText(text).catch(() => {});
     if (el) { el.classList.remove('copied'); void el.offsetWidth; el.classList.add('copied'); }
     renderQueue();
+    react('smirk', queueOn ? KR.left.replace('{n}', queue.length - cursor) : KR.copied);
   }
   function filtered() {
     const s = q.value.trim().toLowerCase();
@@ -279,8 +320,8 @@
 
   document.querySelectorAll('#src li').forEach(li => li.onclick = () => copy(li.textContent, li));
   document.getElementById('b-hist').onclick = openPanel;
-  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); };
-  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); };
+  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); react('calm', KR.clear); };
+  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); if (queueOn) react('neutral', KR.qon); };
 
   const isMod = e => mac ? e.metaKey : e.ctrlKey;
   doc.addEventListener('keydown', e => {
@@ -289,9 +330,12 @@
       e.preventDefault();
       if (cursor >= queue.length) cursor = 0;
       insert(queue[cursor] + '\n'); cursor++; renderQueue();
+      const n = queue.length - cursor;
+      n ? react('smirk', KR.left.replace('{n}', n)) : react('smile', KR.done);
     }
+    else if (isMod(e) && e.key.toLowerCase() === 'v' && !queueOn && history.length) react('unimpressed', KR.qoff);
   });
-  q.addEventListener('input', () => { sel = 0; renderHist(); });
+  q.addEventListener('input', () => { sel = 0; renderHist(); if (q.value.trim() && !filtered().length) react('unimpressed', KR.none); });
   q.addEventListener('keydown', e => {
     const items = filtered();
     if (e.key === 'Escape') { e.preventDefault(); closePanel(); }

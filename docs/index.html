@@ -115,11 +115,38 @@
   .langs a { color: var(--soft); text-decoration: none; margin-left: 10px; }
   .langs a[aria-current] { color: var(--ink); font-weight: 600; }
   .wrap { position: relative; }
+
+  /* mascot */
+  .top { display: grid; grid-template-columns: 1fr 250px; gap: 0 24px; }
+  .mascot { grid-column: 2; grid-row: 1 / span 3; position: relative; margin: 36px 0 -40px; align-self: end; }
+  .mascot img { display: block; width: 100%; height: auto; transform-origin: 50% 100%; animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.006, 1.012); } }
+  .say { position: absolute; right: 72%; top: 50%; width: max-content; max-width: 200px; background: var(--card); border: 1px solid var(--line);
+         border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+  .say::after { content: ""; position: absolute; right: -7px; top: 14px; width: 12px; height: 12px; background: var(--card);
+                border: 1px solid var(--line); border-width: 1px 1px 0 0; transform: rotate(45deg); }
+  .kr { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; min-height: 52px; }
+  .kr img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; flex: none;
+            border: 2px solid var(--line); transition: transform .2s; }
+  .kr img.pop { transform: scale(1.12); }
+  .kr span { font-size: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+  .priv { display: grid; grid-template-columns: 1fr 170px; gap: 24px; align-items: start; }
+  .priv figure { margin: 0; text-align: center; }
+  .priv figure img { width: 170px; height: 170px; border-radius: 18px; object-fit: cover; object-position: 50% 10%; display: block; }
+  .priv figcaption { font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--red); }
+  @media (max-width: 760px) {
+    .top { grid-template-columns: 1fr; }
+    .mascot { display: none; }
+    .priv { grid-template-columns: 1fr; }
+    .priv figure { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .mascot img { animation: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav class="langs"><a href="./" aria-current="page">English</a><a href="ru/">Русский</a><a href="zh/">中文</a></nav>
+  <div class="top">
   <header>
     <img src="icon.png" alt="Kurenai icon">
     <div>
@@ -134,6 +161,8 @@
   </div>
 
   <p class="note">I used CleanClip for years until a macOS update broke it. Everything else I tried was either a subscription or a Swiss army knife. Kurenai keeps what you copy, lets you paste it back with a couple of keys, and stays out of the way the rest of the time.</p>
+    <figure class="mascot"><img src="mascot/kurenai.png" width="500" height="952" alt="Kurenai, the app's mascot: a red-haired woman in a black suit with a katana on her shoulder"><div class="say">I remember everything you copy.</div></figure>
+  </div>
 
   <img class="demo" src="demo.gif" width="800" alt="Kurenai: browsing history, searching, and the paste queue pasting items one by one">
 
@@ -165,6 +194,7 @@
         </div>
         <ol class="queue" id="queue"></ol>
         <p class="hint" id="hint">Turn on the paste queue, copy a few lines, then press ⌘V here again and again.</p>
+        <div class="kr" aria-live="polite"><img id="kr-face" src="mascot/neutral.jpg" alt=""><span id="kr-say">Copy a line on the left. I'll keep it.</span></div>
       </div>
     </div>
   </div>
@@ -174,6 +204,7 @@
     <p><kbd>⌘;</kbd> opens your history. Text and images, newest first, with search. <kbd>⌘1</kbd> to <kbd>⌘9</kbd> pastes one of the top nine without touching the mouse.</p>
     <p><kbd>⌘I</kbd> opens saved lists for things you paste a lot, like replies or addresses. A digit pastes a line.</p>
     <p><kbd>⌘'</kbd> starts the paste queue. Copy a few things, then each <kbd>⌘V</kbd> pastes the next one. <kbd>⇧⌘C</kbd> splits a selected column into lines, which is great for moving a spreadsheet column into a web form.</p>
+    <img class="demo" src="split.gif" width="800" height="450" loading="lazy" alt="Kurenai slices a selected column into four lines for the paste queue">
     <div class="shots">
       <img src="screenshots/history.png" width="560" alt="Kurenai history window">
       <img src="screenshots/queue.png" width="260" alt="Paste queue window">
@@ -182,6 +213,7 @@
 
   <section>
     <h2>Your data stays yours</h2>
+    <div class="priv">
     <ul class="plain">
       <li>Passwords copied from password managers (1Password, Bitwarden, Apple Passwords and others that mark them as concealed) are never saved.</li>
       <li>You pick apps to ignore. Keychain Access and Passwords are on the list from the start.</li>
@@ -189,6 +221,7 @@
       <li>Kurenai's windows are marked private. macOS screenshots skip them, and they stay hidden when you share your screen in Telegram. A few recording apps ignore that flag, so check yours if it matters.</li>
       <li>No account, no analytics. The only network request is an update check, and it's off until you enable it.</li>
     </ul>
+    <figure><img src="mascot/glare.jpg" alt=""><figcaption>Passwords don't get past me.</figcaption></figure></div>
   </section>
 
   <section>
@@ -231,12 +264,20 @@
   const histEl = document.getElementById('hist'), queueEl = document.getElementById('queue'), qBtn = document.getElementById('b-queue');
   let history = [], queue = [], cursor = 0, sel = 0, queueOn = false;
 
+  const KR = {"copied": "Got it. Press ⌘; in the box to see it again.", "qon": "Queue's on. Copy a few lines, I'll keep them in order.", "left": "{n} left. Keep pressing ⌘V.", "done": "All pasted. Not bad.", "qoff": "That's a normal paste. Turn the queue on first.", "none": "Nothing like that in here.", "clear": "Clean slate."}, krFace = document.getElementById('kr-face'), krSay = document.getElementById('kr-say');
+  function react(face, text) {
+    krFace.src = 'mascot/' + face + '.jpg'; krSay.textContent = mac ? text : text.replace(/⌘/g, 'Ctrl+');
+    krFace.classList.remove('pop'); void krFace.offsetWidth; krFace.classList.add('pop');
+    setTimeout(() => krFace.classList.remove('pop'), 220);
+  }
+
   function copy(text, el) {
     history = [text, ...history.filter(t => t !== text)].slice(0, 30);
     if (queueOn) queue.push(text);
     navigator.clipboard?.writeText(text).catch(() => {});
     if (el) { el.classList.remove('copied'); void el.offsetWidth; el.classList.add('copied'); }
     renderQueue();
+    react('smirk', queueOn ? KR.left.replace('{n}', queue.length - cursor) : KR.copied);
   }
   function filtered() {
     const s = q.value.trim().toLowerCase();
@@ -280,8 +321,8 @@
 
   document.querySelectorAll('#src li').forEach(li => li.onclick = () => copy(li.textContent, li));
   document.getElementById('b-hist').onclick = openPanel;
-  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); };
-  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); };
+  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); react('calm', KR.clear); };
+  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); if (queueOn) react('neutral', KR.qon); };
 
   const isMod = e => mac ? e.metaKey : e.ctrlKey;
   doc.addEventListener('keydown', e => {
@@ -290,9 +331,12 @@
       e.preventDefault();
       if (cursor >= queue.length) cursor = 0;
       insert(queue[cursor] + '\n'); cursor++; renderQueue();
+      const n = queue.length - cursor;
+      n ? react('smirk', KR.left.replace('{n}', n)) : react('smile', KR.done);
     }
+    else if (isMod(e) && e.key.toLowerCase() === 'v' && !queueOn && history.length) react('unimpressed', KR.qoff);
   });
-  q.addEventListener('input', () => { sel = 0; renderHist(); });
+  q.addEventListener('input', () => { sel = 0; renderHist(); if (q.value.trim() && !filtered().length) react('unimpressed', KR.none); });
   q.addEventListener('keydown', e => {
     const items = filtered();
     if (e.key === 'Escape') { e.preventDefault(); closePanel(); }
