@@ -9,321 +9,463 @@
 <link rel="alternate" hreflang="ru" href="https://lorder19.github.io/kurenai/ru/">
 <link rel="alternate" hreflang="zh-Hans" href="https://lorder19.github.io/kurenai/zh/">
 <link rel="alternate" hreflang="x-default" href="https://lorder19.github.io/kurenai/">
+<link rel="canonical" href="https://lorder19.github.io/kurenai/">
 <meta name="google-site-verification" content="4caM0wsNIhxIX8n1iZavVsmcZCDrMV4bq5Y9cVzSwYw" />
 <link rel="icon" href="icon.png">
+<meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0e0e" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Kurenai">
 <meta property="og:description" content="Clipboard history for the Mac. Small, free, open source.">
 <meta property="og:image" content="https://lorder19.github.io/kurenai/social.png">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="preload" as="image" href="mascot/kurenai.png">
 <style>
-  :root {
-    --paper: #f3efe8; --ink: #1b1918; --soft: #6d6660; --line: #d9d2c7; --card: #fbf9f5;
-    --red: #c8232f; --red-ink: #8f141d; --key: #e8e2d8; --hl: #fde7e3;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --paper: #131211; --ink: #ece7df; --soft: #9a938a; --line: #2c2926; --card: #1b1917; --key: #2a2724; --hl: #3a1d1e; }
-  }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--paper); color: var(--ink);
-         font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
-  a { color: var(--red); }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
-  kbd { font: 600 0.82em/1 ui-monospace, "SF Mono", Menlo, monospace; background: var(--key); border-radius: 5px;
-        padding: 3px 6px; white-space: nowrap; }
+:root {
+  --paper: #f5f1ea; --paper-2: #efe8dd; --ink: #1a1817; --soft: #6b645d; --faint: #a39b91; --line: #e2dacd; --card: #fffdf9;
+  --red: #c8232f; --red-2: #e03a45; --red-ink: #8f141d; --key: #ece5da; --hl: #fde7e3; --glow: rgba(200, 35, 47, .22);
+  --shadow: 0 1px 2px rgba(40, 20, 10, .05), 0 10px 30px -12px rgba(40, 20, 10, .18);
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #0f0e0e; --paper-2: #161414; --ink: #efe9e1; --soft: #a39b92; --faint: #6b645d; --line: #2a2725; --card: #181615;
+          --key: #26231f; --hl: #3a1d1e; --glow: rgba(224, 58, 69, .28); --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 40px -14px rgba(0,0,0,.7); }
+}
+* { box-sizing: border-box; }
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 76px; }
+body { margin: 0; background: var(--paper); color: var(--ink); overflow-x: hidden;
+       font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--red); }
+img { max-width: 100%; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+kbd { font: 600 .82em/1 ui-monospace, "SF Mono", Menlo, monospace; background: var(--key); border-radius: 6px; padding: 3px 7px;
+      white-space: nowrap; box-shadow: inset 0 -2px 0 rgba(0,0,0,.08); }
+code { font: .9em ui-monospace, "SF Mono", Menlo, monospace; }
 
-  header { padding: 56px 0 8px; display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
-  header img { width: 88px; height: 88px; }
-  h1 { font-size: 44px; line-height: 1; margin: 0 0 6px; letter-spacing: -0.02em; }
-  .lede { margin: 0; color: var(--soft); font-size: 19px; }
-  .get { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 26px 0 0; }
-  .btn { background: var(--red); color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; }
-  .btn:hover { background: var(--red-ink); }
-  code { font: 0.9em ui-monospace, "SF Mono", Menlo, monospace; background: var(--key); padding: 2px 6px; border-radius: 5px; }
-  .meta { color: var(--soft); font-size: 14px; }
+/* nav */
+.nav { position: sticky; top: 0; z-index: 20; transition: background .3s, box-shadow .3s, backdrop-filter .3s; }
+.nav.solid { background: color-mix(in srgb, var(--paper) 78%, transparent); backdrop-filter: saturate(1.6) blur(16px);
+             -webkit-backdrop-filter: saturate(1.6) blur(16px); box-shadow: 0 1px 0 var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.brand img { width: 30px; height: 30px; }
+.nav .links { display: flex; gap: 22px; margin-left: 12px; }
+.nav .links a, .langs a { color: var(--soft); text-decoration: none; font-size: 15px; transition: color .2s; }
+.nav .links a:hover, .langs a:hover { color: var(--ink); }
+.langs { margin-left: auto; display: flex; gap: 12px; }
+.langs a[aria-current] { color: var(--ink); font-weight: 600; }
+.btn { display: inline-flex; align-items: center; gap: 10px; background: var(--red); color: #fff; text-decoration: none; font-weight: 600;
+       padding: 14px 22px; border-radius: 12px; border: 0; cursor: pointer; font-size: 16px; position: relative; overflow: hidden;
+       box-shadow: 0 8px 24px -8px var(--glow), inset 0 1px 0 rgba(255,255,255,.18); transition: transform .2s, box-shadow .2s, background .2s; }
+.btn:hover { background: var(--red-2); transform: translateY(-1px); box-shadow: 0 14px 30px -10px var(--glow), inset 0 1px 0 rgba(255,255,255,.2); }
+.btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.28) 50%, transparent 70%);
+              transform: translateX(-120%); animation: shine 5s ease-in-out infinite 2s; }
+@keyframes shine { 0%, 70% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+.btn.sm { padding: 9px 15px; font-size: 14px; border-radius: 10px; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.ghost { color: var(--ink); text-decoration: none; font-weight: 600; padding: 14px 6px; display: inline-flex; gap: 6px; align-items: center; }
+.ghost span { transition: transform .2s; } .ghost:hover span { transform: translateX(4px); }
 
-  .note { margin: 40px 0 0; }
-  .note, section > p, ul.plain, ol.steps, details p { max-width: 680px; }
-  .demo { display: block; width: 100%; height: auto; margin: 36px 0 0; border-radius: 14px; border: 1px solid var(--line); }
+/* hero */
+.hero { position: relative; padding: 40px 0 30px; }
+.hero .herogrid { display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 24px; min-height: 640px; }
+.glow { position: absolute; z-index: 0; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+.glow.a { width: 520px; height: 520px; right: 4%; top: 30px; background: radial-gradient(circle, var(--glow), transparent 65%); animation: pulse 7s ease-in-out infinite; }
+.glow.b { width: 360px; height: 360px; left: -120px; top: 260px; background: radial-gradient(circle, rgba(201,162,74,.16), transparent 65%); animation: pulse 9s ease-in-out infinite 1s; }
+@keyframes pulse { 50% { transform: scale(1.12); opacity: .75; } }
+.copy { position: relative; z-index: 2; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--soft);
+           border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px 6px 8px; box-shadow: var(--shadow); }
+.eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: #2fb55d; box-shadow: 0 0 0 4px rgba(47,181,93,.16); }
+h1 { font-size: clamp(42px, 6.2vw, 74px); line-height: 1.02; letter-spacing: -.035em; margin: 22px 0 18px; font-weight: 800; }
+h1 em { font-style: normal; background: linear-gradient(92deg, var(--red) 10%, #e8594f 55%, var(--red-ink) 95%);
+        -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: 20px; color: var(--soft); margin: 0 0 30px; max-width: 30em; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+.brew { margin: 22px 0 0; display: inline-flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line);
+        border-radius: 12px; padding: 6px 6px 6px 14px; font-size: 14px; max-width: 100%; box-shadow: var(--shadow); }
+.brew code { color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brew code b { color: var(--ink); font-weight: 600; }
+.brew button { font: 600 13px/1 inherit; font-family: inherit; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+               padding: 8px 11px; border-radius: 8px; cursor: pointer; min-width: 64px; transition: background .2s; }
+.brew button.ok { background: var(--red); border-color: var(--red); color: #fff; }
+.meta { color: var(--faint); font-size: 14px; margin: 14px 0 0; }
 
-  /* playground */
-  .play { margin: 44px 0 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
-  .play-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 18px;
-               border-bottom: 1px solid var(--line); font-size: 15px; }
-  .play-head b { font-weight: 600; }
-  .play-head span { color: var(--soft); }
-  .play-body { display: grid; grid-template-columns: 1fr 1fr; }
-  .col { padding: 16px 18px; }
-  .col + .col { border-left: 1px solid var(--line); }
-  .col h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--soft); text-transform: uppercase; letter-spacing: .06em; }
-  .src { list-style: none; margin: 0; padding: 0; }
-  .src li { padding: 7px 10px; margin: 0 -10px; border-radius: 7px; cursor: pointer; font-size: 15px; }
-  .src li:hover { background: var(--hl); }
-  .src li.copied { animation: flash .5s; }
-  @keyframes flash { from { background: var(--red); color: #fff; } }
-  textarea { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 8px;
-             background: var(--paper); color: var(--ink); font: 15px/1.5 inherit; font-family: inherit; padding: 10px; }
-  textarea:focus { outline: 2px solid var(--red); outline-offset: -1px; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .row button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
-                padding: 6px 11px; border-radius: 8px; cursor: pointer; }
-  .row button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
+.stage { position: relative; z-index: 1; height: 640px; }
+.kanji { position: absolute; right: 2%; top: 4%; width: 78%; opacity: .07; color: var(--red); }
+@media (prefers-color-scheme: dark) { .kanji { opacity: .1; } }
+.girl { position: absolute; right: 8%; bottom: -10px; height: 108%; will-change: transform; transition: transform .25s ease-out; }
+.girl img { height: 100%; width: auto; display: block; transform-origin: 50% 100%; animation: breathe 5.5s ease-in-out infinite;
+            filter: drop-shadow(0 30px 40px rgba(60, 10, 10, .22)); }
+@keyframes breathe { 50% { transform: scale(1.005, 1.011); } }
+.chip { position: absolute; z-index: 3; display: flex; align-items: center; gap: 9px; background: var(--card); border: 1px solid var(--line);
+        border-radius: 12px; padding: 9px 13px 9px 9px; font-size: 14px; white-space: nowrap; box-shadow: var(--shadow);
+        animation: float 6s ease-in-out infinite; }
+.chip b { font: 700 11px/1 ui-monospace, Menlo, monospace; background: var(--red); color: #fff; width: 22px; height: 22px; border-radius: 6px;
+          display: grid; place-items: center; flex: none; }
+.chip .sw { width: 22px; height: 22px; border-radius: 6px; background: #c8232f; flex: none; }
+.chip.c1 { left: -4%; top: 22%; } .chip.c2 { left: 6%; top: 56%; animation-delay: -2s; } .chip.c3 { right: -2%; top: 70%; animation-delay: -4s; }
+@keyframes float { 50% { transform: translateY(-12px); } }
+.say { position: absolute; z-index: 4; left: 2%; top: 4%; max-width: 260px; background: var(--ink); color: var(--paper);
+       border-radius: 16px 16px 16px 4px; padding: 11px 15px; font-size: 15px; font-weight: 500; box-shadow: var(--shadow); min-height: 46px; }
+.say .cur { display: inline-block; width: 2px; height: 1em; background: currentColor; vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 
-  .panel { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); width: min(420px, calc(100% - 24px));
-           background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.25);
-           display: none; z-index: 3; }
-  .panel.open { display: block; }
-  .panel input { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink);
-                 font: inherit; padding: 12px 14px; outline: none; }
-  .panel ol { list-style: none; margin: 0; padding: 6px; max-height: 260px; overflow: auto; }
-  .panel li { display: flex; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 7px; cursor: pointer; font-size: 15px; }
-  .panel li.sel { background: var(--hl); }
-  .panel li i { font-style: normal; font: 600 12px ui-monospace, Menlo, monospace; width: 20px; height: 20px; border-radius: 5px;
-                display: grid; place-items: center; background: var(--key); flex: none; }
-  .panel li.sel i { background: var(--red); color: #fff; }
-  .panel .empty { padding: 14px; color: var(--soft); font-size: 15px; }
-  .stage { position: relative; }
-  .queue { margin: 12px 0 0; padding: 0; list-style: none; font-size: 14px; }
-  .queue li { padding: 3px 0; color: var(--ink); }
-  .queue li.used { color: var(--soft); text-decoration: line-through; }
-  .queue li.next::before { content: "→ "; color: var(--red); }
-  .hint { color: var(--soft); font-size: 13px; margin: 8px 0 0; }
+/* keycaps */
+.keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 26px; padding: 26px 0 6px; position: relative; z-index: 2; }
+.cap { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; color: var(--soft); }
+.cap kbd { font-size: 17px; padding: 12px 16px; min-width: 62px; text-align: center; border-radius: 12px; background: var(--card);
+           border: 1px solid var(--line); box-shadow: 0 4px 0 var(--line), var(--shadow); transition: transform .12s, box-shadow .12s, color .12s; color: var(--ink); }
+.cap.down kbd { transform: translateY(3px); box-shadow: 0 1px 0 var(--line), var(--shadow); color: var(--red); }
 
-  section { margin: 64px 0 0; }
-  h2 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 14px; }
-  ul.plain { padding-left: 20px; margin: 0; }
-  ul.plain li { margin: 8px 0; }
-  .shots { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: center; margin-top: 22px; }
-  .shots img { width: 100%; height: auto; }
-  ol.steps li { margin: 8px 0; }
-  details { border-top: 1px solid var(--line); padding: 12px 0; }
-  details:last-of-type { border-bottom: 1px solid var(--line); }
-  summary { cursor: pointer; font-weight: 600; }
-  details p { color: var(--soft); margin: 8px 0 0; }
-  footer { margin: 72px 0 0; padding: 22px 0 48px; border-top: 1px solid var(--line); color: var(--soft); font-size: 15px; }
+/* sections */
+section { padding: 96px 0 0; position: relative; }
+.kicker { font: 700 12px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--red); }
+h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.025em; line-height: 1.1; margin: 12px 0 34px; font-weight: 800; }
+.window { border-radius: 16px; overflow: hidden; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.window .bar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--line); background: var(--paper-2); }
+.window .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; } .window .bar i:nth-child(2) { background: #febc2e; } .window .bar i:nth-child(3) { background: #28c840; }
+.window .bar span { margin-left: 10px; font-size: 13px; color: var(--soft); font-weight: 600; }
+.window > img { display: block; width: 100%; height: auto; }
+.demo { max-width: 900px; margin: 70px auto 0; }
 
-  @media (max-width: 640px) {
-    header { grid-template-columns: 1fr; }
-    h1 { font-size: 36px; }
-    .play-body { grid-template-columns: 1fr; }
-    .col + .col { border-left: 0; border-top: 1px solid var(--line); }
-    .shots { grid-template-columns: 1fr; }
-    .langs { position: static; text-align: right; padding-top: 14px; }
-    header { padding-top: 20px; }
-  }
-  .langs { position: absolute; top: 18px; right: 20px; font-size: 14px; color: var(--soft); }
-  .langs a { color: var(--soft); text-decoration: none; margin-left: 10px; }
-  .langs a[aria-current] { color: var(--ink); font-weight: 600; }
-  .wrap { position: relative; }
+.note { display: flex; gap: 18px; align-items: flex-start; max-width: 760px; margin: 70px auto 0; }
+.note img { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; object-position: 50% 12%; flex: none; border: 2px solid var(--line); }
+.note p { margin: 0; font-size: 19px; line-height: 1.6; }
+.note small { display: block; color: var(--faint); margin-top: 8px; font-size: 14px; }
 
-  /* mascot */
-  .top { display: grid; grid-template-columns: 1fr 250px; gap: 0 24px; }
-  .mascot { grid-column: 2; grid-row: 1 / span 3; position: relative; margin: 36px 0 -40px; align-self: end; }
-  .mascot img { display: block; width: 100%; height: auto; transform-origin: 50% 100%; animation: breathe 5s ease-in-out infinite; }
-  @keyframes breathe { 50% { transform: scale(1.006, 1.012); } }
-  .say { position: absolute; right: 72%; top: 50%; width: max-content; max-width: 200px; background: var(--card); border: 1px solid var(--line);
-         border-radius: 12px; padding: 8px 12px; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
-  .say::after { content: ""; position: absolute; right: -7px; top: 14px; width: 12px; height: 12px; background: var(--card);
-                border: 1px solid var(--line); border-width: 1px 1px 0 0; transform: rotate(45deg); }
-  .kr { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; min-height: 52px; }
-  .kr img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; flex: none;
-            border: 2px solid var(--line); transition: transform .2s; }
-  .kr img.pop { transform: scale(1.12); }
-  .kr span { font-size: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
-  .priv { display: grid; grid-template-columns: 1fr 170px; gap: 24px; align-items: start; }
-  .priv figure { margin: 0; text-align: center; }
-  .priv figure img { width: 170px; height: 170px; border-radius: 18px; object-fit: cover; object-position: 50% 10%; display: block; }
-  .priv figcaption { font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--red); }
-  @media (max-width: 760px) {
-    .top { grid-template-columns: 1fr; }
-    .mascot { display: none; }
-    .priv { grid-template-columns: 1fr; }
-    .priv figure { display: none; }
-  }
-  @media (prefers-reduced-motion: reduce) { .mascot img { animation: none; } }
+/* features */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow);
+        transition: transform .3s, box-shadow .3s, border-color .3s; position: relative; overflow: hidden; }
+.card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--red) 35%, var(--line)); box-shadow: 0 20px 40px -20px var(--glow), var(--shadow); }
+.card .k { font: 700 15px/1 ui-monospace, Menlo, monospace; color: var(--red); background: var(--hl); padding: 8px 11px; border-radius: 9px; display: inline-block; }
+.card h3 { font-size: 21px; margin: 18px 0 8px; letter-spacing: -.01em; }
+.card p { margin: 0; color: var(--soft); font-size: 16px; }
+.wide { grid-column: 1 / -1; display: grid; grid-template-columns: .8fr 1.2fr; gap: 30px; align-items: center; padding: 30px; }
+.wide img { border-radius: 12px; display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.shots { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: center; margin-top: 40px; }
+.shots img { width: 100%; height: auto; display: block; }
+
+/* playground */
+.play { border: 1px solid var(--line); border-radius: 20px; background: var(--card); overflow: hidden; box-shadow: var(--shadow); }
+.play-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 22px; border-bottom: 1px solid var(--line); font-size: 15px; background: var(--paper-2); }
+.play-head b { font-weight: 700; } .play-head span { color: var(--soft); }
+.play-body { display: grid; grid-template-columns: 1fr 1fr; }
+.col { padding: 20px 22px; } .col + .col { border-left: 1px solid var(--line); }
+.col h3 { margin: 0 0 12px; font-size: 12px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; }
+.src { list-style: none; margin: 0; padding: 0; }
+.src li { padding: 9px 12px; margin: 0 -12px 2px; border-radius: 9px; cursor: pointer; font-size: 15px; transition: background .15s, transform .15s; }
+.src li:hover { background: var(--hl); transform: translateX(3px); }
+.src li.copied { animation: flash .55s; }
+@keyframes flash { from { background: var(--red); color: #fff; } }
+textarea { width: 100%; min-height: 160px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; background: var(--paper);
+           color: var(--ink); font: 15px/1.5 inherit; font-family: inherit; padding: 12px; transition: border-color .2s, box-shadow .2s; }
+textarea:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 4px var(--hl); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.row button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 7px 13px; border-radius: 9px; cursor: pointer; transition: background .15s, border-color .15s; }
+.row button:hover { border-color: var(--faint); }
+.row button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
+.panel { position: absolute; left: 50%; top: 18px; transform: translateX(-50%) scale(.98); opacity: 0; pointer-events: none; width: min(420px, calc(100% - 24px));
+         background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 30px 60px -10px rgba(0,0,0,.35); z-index: 3; transition: opacity .15s, transform .15s; }
+.panel.open { opacity: 1; transform: translateX(-50%) scale(1); pointer-events: auto; }
+.panel input { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; padding: 13px 15px; outline: none; }
+.panel ol { list-style: none; margin: 0; padding: 6px; max-height: 260px; overflow: auto; }
+.panel li { display: flex; gap: 10px; align-items: center; padding: 8px 9px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+.panel li.sel { background: var(--hl); }
+.panel li i { font-style: normal; font: 600 12px ui-monospace, Menlo, monospace; width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; background: var(--key); flex: none; }
+.panel li.sel i { background: var(--red); color: #fff; }
+.panel .empty { padding: 14px; color: var(--soft); font-size: 15px; }
+.stagebox { position: relative; }
+.queue { margin: 12px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.queue li { padding: 3px 0; } .queue li.used { color: var(--faint); text-decoration: line-through; }
+.queue li.next::before { content: "→ "; color: var(--red); }
+.hint { color: var(--soft); font-size: 13px; margin: 10px 0 0; }
+.kr { display: flex; gap: 12px; align-items: center; margin: 16px 0 0; }
+.kr img { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; flex: none; border: 2px solid var(--red); transition: transform .2s; }
+.kr img.pop { transform: scale(1.12) rotate(-3deg); }
+.kr span { font-size: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: 8px 12px; }
+
+/* privacy */
+.dark { background: #121011; color: #eee7de; margin-top: 110px; padding: 90px 0; overflow: hidden; position: relative; }
+.dark::before { content: ""; position: absolute; right: -10%; top: -30%; width: 700px; height: 700px; border-radius: 50%;
+                background: radial-gradient(circle, rgba(200,35,47,.28), transparent 60%); filter: blur(30px); }
+.dark .wrap { position: relative; display: grid; grid-template-columns: 1.3fr .7fr; gap: 50px; align-items: center; }
+.dark h2 { color: #fff; }
+.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+.checks li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; color: #c9c1b7; font-size: 16px; }
+.checks li::before { content: ""; width: 22px; height: 22px; border-radius: 7px; margin-top: 2px;
+  background: var(--red) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/14px no-repeat; }
+.portrait { margin: 0; text-align: center; }
+.portrait img { width: 100%; max-width: 320px; aspect-ratio: 1; object-fit: cover; object-position: 50% 8%; border-radius: 24px;
+                border: 1px solid rgba(255,255,255,.08); box-shadow: 0 30px 80px -20px rgba(200,35,47,.45); }
+.portrait figcaption { margin-top: 16px; font-weight: 700; font-size: 18px; color: #fff; }
+.portrait figcaption::before { content: "“"; color: var(--red-2); }
+.portrait figcaption::after { content: "”"; color: var(--red-2); }
+
+/* install */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); color: var(--soft); font-size: 16px; }
+.steps li::before { content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: var(--paper); font-weight: 700; margin-bottom: 14px; }
+.steps b { color: var(--ink); }
+.brewline { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 22px; color: var(--soft); }
+
+/* faq */
+.faq { max-width: 820px; }
+details { border-bottom: 1px solid var(--line); padding: 4px 0; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; font-weight: 600; font-size: 18px; padding: 16px 40px 16px 0; list-style: none; position: relative; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: ""; position: absolute; right: 6px; top: 50%; width: 10px; height: 10px; border: solid var(--soft); border-width: 0 2px 2px 0;
+                 transform: translateY(-70%) rotate(45deg); transition: transform .25s; }
+details[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+details p { color: var(--soft); margin: 0 0 18px; max-width: 700px; }
+
+/* final cta */
+.end { text-align: center; padding: 120px 0 40px; }
+.end img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; object-position: 50% 12%; border: 3px solid var(--red); box-shadow: 0 16px 40px -12px var(--glow); }
+.end h2 { margin: 22px 0 10px; }
+.end p { color: var(--soft); margin: 0 0 28px; }
+footer { border-top: 1px solid var(--line); padding: 26px 0 50px; color: var(--soft); font-size: 15px; margin-top: 80px; }
+footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+/* scroll reveal */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); transition-delay: var(--d, 0s); }
+.reveal.in { opacity: 1; transform: none; }
+.hero .copy > * { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+.hero .copy > *:nth-child(2) { animation-delay: .08s; } .hero .copy > *:nth-child(3) { animation-delay: .16s; }
+.hero .copy > *:nth-child(4) { animation-delay: .24s; } .hero .copy > *:nth-child(5) { animation-delay: .32s; } .hero .copy > *:nth-child(6) { animation-delay: .4s; }
+.stage { animation: fadein 1.4s ease both .2s; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+@keyframes fadein { from { opacity: 0; transform: translateX(30px); } }
+
+@media (max-width: 900px) {
+  .nav .links { display: none; }
+  .hero .herogrid { grid-template-columns: 1fr; min-height: 0; }
+  .stage { height: 520px; }
+  .girl { right: 50%; transform: translateX(50%); }
+  .chip.c1 { left: 0; } .chip.c3 { right: 0; }
+  .grid, .steps { grid-template-columns: 1fr; }
+  .wide { grid-template-columns: 1fr; }
+  .dark .wrap { grid-template-columns: 1fr; }
+  .portrait img { max-width: 220px; }
+  .play-body { grid-template-columns: 1fr; }
+  .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+  .shots { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .wrap { padding: 0 16px; }
+  .nav .btn.sm { display: none; }
+  .stage { height: 440px; }
+  .chip { font-size: 13px; } .chip.c2 { display: none; }
+  .say { max-width: 200px; font-size: 14px; }
+  h1 { font-size: 38px; }
+  .lede { font-size: 18px; }
+  .brew { display: flex; width: 100%; }
+  .brew code { font-size: 12px; white-space: normal; word-break: break-word; }
+  .chip { max-width: 72%; overflow: hidden; text-overflow: ellipsis; }
+  .chip.c3 { right: 2%; }
+  .actions .btn { width: 100%; justify-content: center; }
+  section { padding-top: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; transform: none; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <nav class="langs"><a href="./" aria-current="page">English</a><a href="ru/">Русский</a><a href="zh/">中文</a></nav>
-  <div class="top">
-  <header>
-    <img src="icon.png" alt="Kurenai icon">
-    <div>
-      <h1>Kurenai</h1>
+<nav class="nav" id="nav"><div class="wrap">
+  <a class="brand" href=""><img src="icon.png" alt="">Kurenai</a>
+  <div class="links"><a href="#features">Features</a><a href="#privacy">Privacy</a><a href="#install">Install</a><a href="#faq">FAQ</a></div>
+  <div class="langs"><a href="" aria-current="page">EN</a><a href="ru/">RU</a><a href="zh/">中文</a></div>
+  <a class="btn sm" href="https://github.com/Lorder19/kurenai/releases/latest">Download</a>
+</div></nav>
+
+<header class="hero">
+  <div class="glow a"></div><div class="glow b"></div>
+  <div class="wrap herogrid">
+    <div class="copy">
+      <span class="eyebrow"><i></i>Free · Open source · macOS 14+</span>
+      <h1>Your clipboard,<br><em>with a sharp memory.</em></h1>
       <p class="lede">Clipboard history for the Mac. Small, free, open source.</p>
-    </div>
-  </header>
-  <div class="get">
-    <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest">Download for macOS</a>
-    <span class="meta">macOS 14+, Apple Silicon and Intel, about 2 MB</span>
-    <a href="https://github.com/Lorder19/kurenai">Source on GitHub</a>
-  </div>
-
-  <p class="note">I used CleanClip for years until a macOS update broke it. Everything else I tried was either a subscription or a Swiss army knife. Kurenai keeps what you copy, lets you paste it back with a couple of keys, and stays out of the way the rest of the time.</p>
-    <figure class="mascot"><img src="mascot/kurenai.png" width="500" height="952" alt="Kurenai, the app's mascot: a red-haired woman in a black suit with a katana on her shoulder"><div class="say">I remember everything you copy.</div></figure>
-  </div>
-
-  <img class="demo" src="demo.gif" width="800" alt="Kurenai: browsing history, searching, and the paste queue pasting items one by one">
-
-  <div class="play" id="play">
-    <div class="play-head"><b>Try it right here</b><span>Click a line to copy it, then press <kbd id="k-hist">⌘;</kbd> in the box</span></div>
-    <div class="play-body">
-      <div class="col">
-        <h3>Things to copy</h3>
-        <ul class="src" id="src">
-          <li>Invoice #2048 is due on Friday</li>
-          <li>221B Baker Street, London NW1 6XE</li>
-          <li>git commit -m "fix login redirect"</li>
-          <li>Thanks, got it! I'll reply tomorrow.</li>
-          <li>#c8232f</li>
-          <li>Meeting moved to 3:30, same link</li>
-        </ul>
+      <div class="actions">
+        <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-.9-2.4-3.9zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Download for macOS</a>
+        <a class="ghost" href="#play">Try it in the browser <span>→</span></a>
       </div>
-      <div class="col stage">
-        <h3>Your document</h3>
-        <div class="panel" id="panel" role="dialog" aria-label="Clipboard history">
-          <input id="q" placeholder="Search clipboard" autocomplete="off">
-          <ol id="hist"></ol>
-        </div>
-        <textarea id="doc" placeholder="Click here, then press ⌘; (Ctrl+; on Windows) to open history"></textarea>
-        <div class="row">
-          <button id="b-hist">Open history</button>
-          <button id="b-queue" aria-pressed="false">Paste queue</button>
-          <button id="b-clear">Clear</button>
-        </div>
-        <ol class="queue" id="queue"></ol>
-        <p class="hint" id="hint">Turn on the paste queue, copy a few lines, then press ⌘V here again and again.</p>
-        <div class="kr" aria-live="polite"><img id="kr-face" src="mascot/neutral.jpg" alt=""><span id="kr-say">Copy a line on the left. I'll keep it.</span></div>
-      </div>
+      <div class="brew"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button id="brew" data-ok="Copied">Copy</button></div>
+      <p class="meta">Apple Silicon and Intel · about 2 MB · MIT</p>
+    </div>
+    <div class="stage" id="stage" aria-hidden="false">
+      <svg class="kanji" viewBox="190 180 650 670" aria-hidden="true"><path fill="currentColor" d="M477.7 769.5 L477.7 822.4 L355.4 832.0 L309.4 809.3 L275.8 797.7 L207.1 763.3 Q213.3 738.6 216.4 711.1 Q219.5 683.7 221.2 657.9 Q222.9 632.2 223.2 612.3 Q223.6 592.3 223.6 582.7 L223.6 577.9 L216.0 574.5 L209.9 470.1 Q209.9 470.1 224.6 468.4 Q239.4 466.7 258.6 465.3 Q262.0 461.2 265.1 456.7 Q268.2 452.3 271.0 448.1 Q259.3 431.7 243.8 412.4 Q228.4 393.2 208.5 371.9 L251.1 253.1 Q254.5 255.2 259.0 257.6 Q263.4 260.0 267.5 261.4 Q272.3 248.3 276.8 233.9 Q281.3 219.5 286.1 198.2 L381.5 223.6 L450.2 257.9 Q447.5 266.8 445.0 272.3 Q442.6 277.8 439.9 284.0 L457.8 292.9 L457.8 216.0 L733.1 192.0 L801.8 226.3 L801.8 344.4 L724.2 351.3 L724.2 617.1 L748.2 615.0 L816.9 649.3 L816.9 767.5 L523.7 792.2 ZM648.7 630.8 L648.7 310.8 L726.2 303.9 L726.2 199.6 L464.6 222.2 L464.6 326.6 L553.9 319.0 L553.9 639.0 L494.8 643.8 Q490.7 612.9 482.5 569.0 L420.0 589.6 Q424.1 628.7 427.2 660.3 Q430.3 691.9 432.0 710.1 Q433.7 728.3 433.7 728.3 L461.9 717.3 L461.9 750.3 L741.4 726.9 L741.4 622.6 ZM405.6 545.0 Q411.7 543.6 417.6 542.2 Q423.4 540.8 428.2 540.2 Q431.0 553.2 432.3 561.4 Q433.7 569.7 433.7 569.7 L505.1 532.6 Q505.1 532.6 499.3 512.7 Q493.5 492.8 483.5 460.2 Q473.5 427.5 460.5 389.8 L400.1 424.8 Q402.8 431.7 404.9 438.2 Q406.9 444.7 408.3 452.3 Q400.8 453.6 389.1 455.7 Q377.4 457.8 367.8 459.1 Q395.9 421.4 415.5 387.4 Q435.1 353.4 445.7 331.4 Q456.4 309.4 456.4 309.4 L384.3 264.1 Q384.3 264.1 371.6 292.6 Q358.9 321.1 333.5 363.7 Q330.7 359.6 328.0 355.4 Q325.2 351.3 321.8 347.2 Q331.4 328.7 344.8 299.1 Q358.2 269.6 372.6 229.1 L290.9 207.1 Q285.4 229.1 279.2 247.6 Q273.0 266.2 266.8 280.6 L253.1 265.5 L216.0 370.5 Q235.3 389.8 251.1 410.0 Q266.8 430.3 279.2 447.5 Q275.8 453.6 271.3 459.8 Q266.8 466.0 262.0 472.2 Q242.1 473.5 229.4 474.9 Q216.7 476.3 216.7 476.3 L222.2 567.6 Q222.2 567.6 248.7 565.6 Q275.1 563.5 311.5 559.4 L311.5 789.4 L405.6 781.2 ZM284.0 777.1 Q289.5 746.8 292.3 710.5 Q295.0 674.1 295.7 641.8 Q296.4 609.5 296.4 591.7 L296.4 575.2 L230.5 578.6 L230.5 589.6 Q230.5 604.0 229.4 632.9 Q228.4 661.7 225.3 695.3 Q222.2 729.0 215.3 757.8 Z"/></svg>
+      <div class="say" id="say" aria-live="polite"><span id="say-t"></span><span class="cur"></span></div>
+      <div class="girl" id="girl"><img src="mascot/kurenai.png" width="527" height="1000" alt="Kurenai, the app's mascot: a red-haired woman in a black suit with a katana on her shoulder"></div>
+      <div class="chip c1"><b>1</b>Invoice #2048 is due on Friday</div>
+      <div class="chip c2"><span class="sw"></span>#c8232f</div>
+      <div class="chip c3"><b>3</b>221B Baker Street, London</div>
     </div>
   </div>
+  <div class="wrap"><div class="keys" id="keys"><div class="cap"><kbd>⌘;</kbd>history</div><div class="cap"><kbd>⌘1–9</kbd>paste instantly</div><div class="cap"><kbd>⌘I</kbd>saved lists</div><div class="cap"><kbd>⌘'</kbd>paste queue</div><div class="cap"><kbd>⇧⌘C</kbd>split into lines</div></div></div>
+</header>
 
-  <section>
-    <h2>Three shortcuts</h2>
-    <p><kbd>⌘;</kbd> opens your history. Text and images, newest first, with search. <kbd>⌘1</kbd> to <kbd>⌘9</kbd> pastes one of the top nine without touching the mouse.</p>
-    <p><kbd>⌘I</kbd> opens saved lists for things you paste a lot, like replies or addresses. A digit pastes a line.</p>
-    <p><kbd>⌘'</kbd> starts the paste queue. Copy a few things, then each <kbd>⌘V</kbd> pastes the next one. <kbd>⇧⌘C</kbd> splits a selected column into lines, which is great for moving a spreadsheet column into a web form.</p>
-    <img class="demo" src="split.gif" width="800" height="450" loading="lazy" alt="Kurenai slices a selected column into four lines for the paste queue">
-    <div class="shots">
-      <img src="screenshots/history.png" width="560" alt="Kurenai history window">
-      <img src="screenshots/queue.png" width="260" alt="Paste queue window">
+<main>
+  <div class="wrap">
+    <div class="window demo reveal"><div class="bar"><i></i><i></i><i></i><span>Kurenai</span></div>
+      <img src="demo.gif" width="800" alt="Kurenai: browsing history, searching, and the paste queue pasting items one by one"></div>
+    <div class="note reveal"><img src="mascot/neutral.jpg" alt=""><p>I used CleanClip for years until a macOS update broke it. Everything else I tried was either a subscription or a Swiss army knife. Kurenai keeps what you copy, lets you paste it back with a couple of keys, and stays out of the way the rest of the time.<small>— the developer</small></p></div>
+  </div>
+
+  <section id="play"><div class="wrap">
+    <div class="play reveal">
+      <div class="play-head"><b>Try it right here</b><span>Click a line to copy it, then press <kbd id="k-hist">⌘;</kbd> in the box</span></div>
+      <div class="play-body">
+        <div class="col"><h3>Things to copy</h3><ul class="src" id="src"><li>Invoice #2048 is due on Friday</li><li>221B Baker Street, London NW1 6XE</li><li>git commit -m &quot;fix login redirect&quot;</li><li>Thanks, got it! I&#x27;ll reply tomorrow.</li><li>#c8232f</li><li>Meeting moved to 3:30, same link</li></ul></div>
+        <div class="col stagebox">
+          <h3>Your document</h3>
+          <div class="panel" id="panel" role="dialog" aria-label="Clipboard history">
+            <input id="q" placeholder="Search clipboard" autocomplete="off"><ol id="hist"></ol>
+          </div>
+          <textarea id="doc" placeholder="Click here, then press ⌘; (Ctrl+; on Windows) to open history"></textarea>
+          <div class="row"><button id="b-hist">Open history</button><button id="b-queue" aria-pressed="false">Paste queue</button><button id="b-clear">Clear</button></div>
+          <ol class="queue" id="queue"></ol>
+          <p class="hint" id="hint">Turn on the paste queue, copy a few lines, then press ⌘V here again and again.</p>
+          <div class="kr" aria-live="polite"><img id="kr-face" src="mascot/neutral.jpg" alt=""><span id="kr-say">Copy a line on the left. I'll keep it.</span></div>
+        </div>
+      </div>
     </div>
-  </section>
+  </div></section>
 
-  <section>
-    <h2>Your data stays yours</h2>
-    <div class="priv">
-    <ul class="plain">
-      <li>Passwords copied from password managers (1Password, Bitwarden, Apple Passwords and others that mark them as concealed) are never saved.</li>
-      <li>You pick apps to ignore. Keychain Access and Passwords are on the list from the start.</li>
-      <li>History and images are encrypted on disk. Honest caveat: the key is stored next to them for your user account, so this stops a leaked file, not someone sitting at your Mac.</li>
-      <li>Kurenai's windows are marked private. macOS screenshots skip them, and they stay hidden when you share your screen in Telegram. A few recording apps ignore that flag, so check yours if it matters.</li>
-      <li>No account, no analytics. The only network request is an update check, and it's off until you enable it.</li>
-    </ul>
-    <figure><img src="mascot/glare.jpg" alt=""><figcaption>Passwords don't get past me.</figcaption></figure></div>
-  </section>
+  <section id="features"><div class="wrap">
+    <div class="reveal"><div class="kicker">Three shortcuts</div><h2>Everything from the keyboard</h2></div>
+    <div class="grid">
+      <div class="card reveal"><span class="k">⌘;</span><h3>History</h3><p>Text and images, newest first, with search. <kbd>⌘1</kbd> to <kbd>⌘9</kbd> pastes one of the top nine without touching the mouse.</p></div>
+      <div class="card reveal" style="--d:.08s"><span class="k">⌘I</span><h3>Saved lists</h3><p>For things you paste a lot, like replies or addresses. A digit pastes a line.</p></div>
+      <div class="card reveal" style="--d:.16s"><span class="k">⌘'</span><h3>Paste queue</h3><p>Copy a few things, then each <kbd>⌘V</kbd> pastes the next one.</p></div>
+      <div class="card wide reveal"><div><span class="k">⇧⌘C</span><h3>Split into lines</h3><p>Select a column and press ⇧⌘C. Kurenai cuts it into lines and queues them, which is great for moving a spreadsheet column into a web form.</p></div>
+        <img src="split.gif" width="800" height="450" loading="lazy" alt="Kurenai slices a selected column into four lines for the paste queue"></div>
+    </div>
+    <div class="shots reveal">
+      <img src="screenshots/history.png" width="560" loading="lazy" alt="Kurenai history window">
+      <img src="screenshots/queue.png" width="260" loading="lazy" alt="Paste queue window">
+    </div>
+  </div></section>
 
-  <section>
-    <h2>Install</h2>
-    <p>With Homebrew: <code>brew install --cask lorder19/tap/kurenai</code>. Or by hand:</p>
-    <ol class="steps">
-      <li>Download <b>Kurenai.zip</b>, unzip it and drag Kurenai into Applications.</li>
-      <li>Open it. macOS will complain about an unidentified developer because I don't pay Apple for a certificate yet. Open System Settings → Privacy &amp; Security and click <b>Open Anyway</b>.</li>
-      <li>Allow Accessibility when asked. Kurenai uses it only to press ⌘V for you.</li>
-    </ol>
-  </section>
+  <section class="dark" id="privacy"><div class="wrap">
+    <div class="reveal"><div class="kicker">Privacy</div><h2>Your data stays yours</h2><ul class="checks"><li>Passwords copied from password managers (1Password, Bitwarden, Apple Passwords and others that mark them as concealed) are never saved.</li><li>You pick apps to ignore. Keychain Access and Passwords are on the list from the start.</li><li>History and images are encrypted on disk. Honest caveat: the key is stored next to them for your user account, so this stops a leaked file, not someone sitting at your Mac.</li><li>Kurenai's windows are marked private. macOS screenshots skip them, and they stay hidden when you share your screen in Telegram. A few recording apps ignore that flag, so check yours if it matters.</li><li>No account, no analytics. The only network request is an update check, and it's off until you enable it.</li></ul></div>
+    <figure class="portrait reveal" style="--d:.1s"><img src="mascot/glare.jpg" loading="lazy" alt=""><figcaption>Passwords don't get past me.</figcaption></figure>
+  </div></section>
 
-  <section>
-    <h2>Questions</h2>
-    <details><summary>Why not just use the clipboard history in macOS Tahoe?</summary>
-      <p>It's fine for finding something you copied. Kurenai is built around pasting: numbered items, saved lists and the paste queue, all from the keyboard.</p></details>
-    <details><summary>A shortcut sometimes does nothing</summary>
-      <p>When a password field is focused, macOS turns on Secure Input and blocks global shortcuts for every app. Some password managers forget to turn it off. Switching apps, or restarting the password manager, fixes it. Kurenai shows a warning in its menu when this happens.</p></details>
-    <details><summary>I can't find the menu bar icon</summary>
-      <p>On MacBooks with a notch, extra icons can hide behind it. The shortcuts still work, and opening Kurenai again from Spotlight brings up Settings.</p></details>
-    <details><summary>How do I uninstall it?</summary>
-      <p>Quit Kurenai, delete the app, then delete ~/Library/Application Support/Kurenai.</p></details>
-    <details><summary>Will it stay free?</summary>
-      <p>Yes, everything you see here stays free. I might add a paid version later with extras like keeping rich text formatting, to pay for an Apple developer account.</p></details>
-  </section>
+  <section id="install"><div class="wrap">
+    <div class="reveal"><div class="kicker">Install</div><h2>Up and running in a minute</h2></div>
+    <div class="brewline reveal">With Homebrew: <div class="brew" style="margin:0"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button class="brew2" data-ok="Copied">Copy</button></div> Or by hand:</div>
+    <ol class="steps"><li class="reveal">Download <b>Kurenai.zip</b>, unzip it and drag Kurenai into Applications.</li><li class="reveal" style="--d:.08s">Open it. macOS will complain about an unidentified developer because I don't pay Apple for a certificate yet. Open System Settings → Privacy &amp; Security and click <b>Open Anyway</b>.</li><li class="reveal" style="--d:.16s">Allow Accessibility when asked. Kurenai uses it only to press ⌘V for you.</li></ol>
+  </div></section>
 
-  <footer>
-    Switching from <a href="cleanclip-alternative/">CleanClip</a> or <a href="maccy-alternative/">Maccy</a>? Kurenai is MIT licensed. Found a bug or want a feature? <a href="https://github.com/Lorder19/kurenai/issues">Open an issue</a>.
-  </footer>
-</div>
+  <section id="faq"><div class="wrap faq reveal"><h2>Questions</h2><details><summary>Why not just use the clipboard history in macOS Tahoe?</summary><p>It's fine for finding something you copied. Kurenai is built around pasting: numbered items, saved lists and the paste queue, all from the keyboard.</p></details><details><summary>A shortcut sometimes does nothing</summary><p>When a password field is focused, macOS turns on Secure Input and blocks global shortcuts for every app. Some password managers forget to turn it off. Switching apps, or restarting the password manager, fixes it. Kurenai shows a warning in its menu when this happens.</p></details><details><summary>I can't find the menu bar icon</summary><p>On MacBooks with a notch, extra icons can hide behind it. The shortcuts still work, and opening Kurenai again from Spotlight brings up Settings.</p></details><details><summary>How do I uninstall it?</summary><p>Quit Kurenai, delete the app, then delete ~/Library/Application Support/Kurenai.</p></details><details><summary>Will it stay free?</summary><p>Yes, everything you see here stays free. I might add a paid version later with extras like keeping rich text formatting, to pay for an Apple developer account.</p></details></div></section>
+
+  <div class="end wrap reveal">
+    <img src="mascot/smile.jpg" alt="">
+    <h2>Paste like you mean it.</h2><p>Free forever for everything on this page.</p>
+    <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-.9-2.4-3.9zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Download for macOS</a>
+  </div>
+</main>
+
+<footer><div class="wrap"><span>Switching from <a href="cleanclip-alternative/">CleanClip</a> or <a href="maccy-alternative/">Maccy</a>? Kurenai is MIT licensed. Found a bug or want a feature? <a href="https://github.com/Lorder19/kurenai/issues">Open an issue</a>.</span><a href="https://github.com/Lorder19/kurenai">Source on GitHub</a></div></footer>
 
 <script>
 (() => {
+  const T = {"says": ["I remember everything you copy.", "Passwords? Never saved.", "⌘V. Next. ⌘V. Next.", "No account. No tracking."], "kr": {"start": "Copy a line on the left. I'll keep it.", "copied": "Got it. Press ⌘; in the box to see it again.", "qon": "Queue's on. Copy a few lines, I'll keep them in order.", "left": "{n} left. Keep pressing ⌘V.", "done": "All pasted. Not bad.", "qoff": "That's a normal paste. Turn the queue on first.", "none": "Nothing like that in here.", "clear": "Clean slate."}, "hint_win": "Turn on the paste queue, copy a few lines, then press Ctrl+V here again and again.", "nothing": "Nothing found", "copy_first": "Copy something on the left first"}, P = '';
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-  if (!mac) {
-    document.getElementById('k-hist').textContent = 'Ctrl+;';
-    document.getElementById('hint').textContent = 'Turn on the paste queue, copy a few lines, then press Ctrl+V here again and again.';
+  const keyfix = s => mac ? s : s.replace(/⌘/g, 'Ctrl+');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // nav turns solid once you scroll
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('solid', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  // scroll reveal
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // the speech bubble types out a few lines in turn
+  const sayT = document.getElementById('say-t');
+  let si = 0;
+  function typeLine() {
+    const text = keyfix(T.says[si++ % T.says.length]);
+    if (still) { sayT.textContent = text; return setTimeout(typeLine, 4000); }
+    let i = 0;
+    const tick = () => { sayT.textContent = text.slice(0, ++i); i < text.length ? setTimeout(tick, 38) : setTimeout(erase, 2600); };
+    const erase = () => { sayT.textContent = text.slice(0, --i); i > 0 ? setTimeout(erase, 16) : setTimeout(typeLine, 300); };
+    tick();
   }
+  setTimeout(typeLine, 900);
+
+  // the mascot leans a little toward the pointer
+  const girl = document.getElementById('girl'), stage = document.getElementById('stage');
+  if (!still && matchMedia('(min-width: 901px) and (pointer: fine)').matches) {
+    addEventListener('pointermove', e => {
+      const x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
+      girl.style.transform = `translate(${x * -14}px, ${y * -8}px)`;
+      stage.querySelector('.kanji').style.transform = `translate(${x * 18}px, ${y * 12}px)`;
+    }, { passive: true });
+  }
+
+  // keycaps press themselves one by one
+  const caps = [...document.querySelectorAll('.cap')];
+  if (!still) { let k = 0; setInterval(() => { const c = caps[k++ % caps.length]; c.classList.add('down'); setTimeout(() => c.classList.remove('down'), 220); }, 1100); }
+  if (!mac) caps.forEach(c => c.querySelector('kbd').textContent = keyfix(c.querySelector('kbd').textContent));
+
+  // copy the brew command
+  document.querySelectorAll('#brew, .brew2').forEach(b => b.onclick = () => {
+    navigator.clipboard?.writeText('brew install --cask lorder19/tap/kurenai').catch(() => {});
+    const was = b.textContent; b.textContent = b.dataset.ok; b.classList.add('ok');
+    setTimeout(() => { b.textContent = was; b.classList.remove('ok'); }, 1400);
+  });
+
+  // playground
+  if (!mac) { document.getElementById('k-hist').textContent = 'Ctrl+;'; document.getElementById('hint').textContent = T.hint_win; }
   const doc = document.getElementById('doc'), panel = document.getElementById('panel'), q = document.getElementById('q');
   const histEl = document.getElementById('hist'), queueEl = document.getElementById('queue'), qBtn = document.getElementById('b-queue');
+  const krFace = document.getElementById('kr-face'), krSay = document.getElementById('kr-say');
   let history = [], queue = [], cursor = 0, sel = 0, queueOn = false;
-
-  const KR = {"copied": "Got it. Press ⌘; in the box to see it again.", "qon": "Queue's on. Copy a few lines, I'll keep them in order.", "left": "{n} left. Keep pressing ⌘V.", "done": "All pasted. Not bad.", "qoff": "That's a normal paste. Turn the queue on first.", "none": "Nothing like that in here.", "clear": "Clean slate."}, krFace = document.getElementById('kr-face'), krSay = document.getElementById('kr-say');
   function react(face, text) {
-    krFace.src = 'mascot/' + face + '.jpg'; krSay.textContent = mac ? text : text.replace(/⌘/g, 'Ctrl+');
+    krFace.src = P + 'mascot/' + face + '.jpg'; krSay.textContent = keyfix(text);
     krFace.classList.remove('pop'); void krFace.offsetWidth; krFace.classList.add('pop');
     setTimeout(() => krFace.classList.remove('pop'), 220);
   }
-
   function copy(text, el) {
     history = [text, ...history.filter(t => t !== text)].slice(0, 30);
     if (queueOn) queue.push(text);
     navigator.clipboard?.writeText(text).catch(() => {});
     if (el) { el.classList.remove('copied'); void el.offsetWidth; el.classList.add('copied'); }
     renderQueue();
-    react('smirk', queueOn ? KR.left.replace('{n}', queue.length - cursor) : KR.copied);
+    react('smirk', queueOn ? T.kr.left.replace('{n}', queue.length - cursor) : T.kr.copied);
   }
-  function filtered() {
-    const s = q.value.trim().toLowerCase();
-    return s ? history.filter(t => t.toLowerCase().includes(s)) : history;
-  }
+  function filtered() { const s = q.value.trim().toLowerCase(); return s ? history.filter(t => t.toLowerCase().includes(s)) : history; }
   function renderHist() {
     const items = filtered();
     sel = Math.min(sel, Math.max(items.length - 1, 0));
     histEl.innerHTML = '';
-    if (!items.length) {
-      histEl.innerHTML = '<li class="empty">' + (history.length ? 'Nothing found' : 'Copy something on the left first') + '</li>';
-      return;
-    }
+    if (!items.length) { histEl.innerHTML = '<li class="empty">' + (history.length ? T.nothing : T.copy_first) + '</li>'; return; }
     items.forEach((t, i) => {
-      const li = document.createElement('li');
-      if (i === sel) li.className = 'sel';
+      const li = document.createElement('li'); if (i === sel) li.className = 'sel';
       const n = document.createElement('i'); n.textContent = i < 9 ? i + 1 : '';
-      li.append(n, document.createTextNode(t));
-      li.onclick = () => pick(t);
-      histEl.append(li);
+      li.append(n, document.createTextNode(t)); li.onclick = () => pick(t); histEl.append(li);
     });
   }
   function renderQueue() {
     queueEl.innerHTML = '';
     if (!queueOn) return;
-    queue.forEach((t, i) => {
-      const li = document.createElement('li');
-      li.textContent = t;
-      li.className = i < cursor ? 'used' : i === cursor ? 'next' : '';
-      queueEl.append(li);
-    });
+    queue.forEach((t, i) => { const li = document.createElement('li'); li.textContent = t; li.className = i < cursor ? 'used' : i === cursor ? 'next' : ''; queueEl.append(li); });
   }
-  function insert(text) {
-    const a = doc.selectionStart, b = doc.selectionEnd;
-    doc.value = doc.value.slice(0, a) + text + doc.value.slice(b);
-    doc.selectionStart = doc.selectionEnd = a + text.length;
-  }
+  function insert(text) { const a = doc.selectionStart, b = doc.selectionEnd; doc.value = doc.value.slice(0, a) + text + doc.value.slice(b); doc.selectionStart = doc.selectionEnd = a + text.length; }
   function openPanel() { q.value = ''; sel = 0; renderHist(); panel.classList.add('open'); q.focus(); }
   function closePanel() { panel.classList.remove('open'); doc.focus(); }
   function pick(t) { closePanel(); insert(t + '\n'); copy(t); }
-
   document.querySelectorAll('#src li').forEach(li => li.onclick = () => copy(li.textContent, li));
   document.getElementById('b-hist').onclick = openPanel;
-  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); react('calm', KR.clear); };
-  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); if (queueOn) react('neutral', KR.qon); };
-
+  document.getElementById('b-clear').onclick = () => { doc.value = ''; queue = []; cursor = 0; renderQueue(); react('calm', T.kr.clear); };
+  qBtn.onclick = () => { queueOn = !queueOn; qBtn.setAttribute('aria-pressed', queueOn); queue = []; cursor = 0; renderQueue(); if (queueOn) react('neutral', T.kr.qon); };
   const isMod = e => mac ? e.metaKey : e.ctrlKey;
   doc.addEventListener('keydown', e => {
     if (isMod(e) && e.key === ';') { e.preventDefault(); openPanel(); }
@@ -332,11 +474,10 @@
       if (cursor >= queue.length) cursor = 0;
       insert(queue[cursor] + '\n'); cursor++; renderQueue();
       const n = queue.length - cursor;
-      n ? react('smirk', KR.left.replace('{n}', n)) : react('smile', KR.done);
-    }
-    else if (isMod(e) && e.key.toLowerCase() === 'v' && !queueOn && history.length) react('unimpressed', KR.qoff);
+      n ? react('smirk', T.kr.left.replace('{n}', n)) : react('smile', T.kr.done);
+    } else if (isMod(e) && e.key.toLowerCase() === 'v' && !queueOn && history.length) react('unimpressed', T.kr.qoff);
   });
-  q.addEventListener('input', () => { sel = 0; renderHist(); if (q.value.trim() && !filtered().length) react('unimpressed', KR.none); });
+  q.addEventListener('input', () => { sel = 0; renderHist(); if (q.value.trim() && !filtered().length) react('unimpressed', T.kr.none); });
   q.addEventListener('keydown', e => {
     const items = filtered();
     if (e.key === 'Escape') { e.preventDefault(); closePanel(); }
