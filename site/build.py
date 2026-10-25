@@ -68,7 +68,7 @@ def page(t):
         <a class="btn" href="{DL}">{APPLE}{t['cta']}</a>
         <a class="ghost" href="#play">{t['try_it']} <span>→</span></a>
       </div>
-      <div class="brew"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button id="brew" data-ok="{t['copied']}">Copy</button></div>
+      <div class="brew"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button id="brew" data-ok="{t['copied']}">{t["copy_btn"]}</button></div>
       <p class="meta">{t['meta']}</p>
     </div>
     <div class="stage" id="stage" aria-hidden="false">
@@ -132,7 +132,7 @@ def page(t):
 
   <section id="install"><div class="wrap">
     <div class="reveal"><div class="kicker">{t['inst_kicker']}</div><h2>{t['inst_title']}</h2></div>
-    <div class="brewline reveal">{t['brew_label']}: <div class="brew" style="margin:0"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button class="brew2" data-ok="{t['copied']}">Copy</button></div> {t['hand']}:</div>
+    <div class="brewline reveal">{t['brew_label']}: <div class="brew" style="margin:0"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button class="brew2" data-ok="{t['copied']}">{t["copy_btn"]}</button></div> {t['hand']}:</div>
     <ol class="steps">{steps.replace('<li>', '<li class="reveal">', 1).replace('<li>', '<li class="reveal" style="--d:.08s">', 1).replace('<li>', '<li class="reveal" style="--d:.16s">', 1)}</ol>
   </div></section>
 
