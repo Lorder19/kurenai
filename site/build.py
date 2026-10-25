@@ -74,7 +74,7 @@ def page(t):
     <div class="stage" id="stage" aria-hidden="false">
       <svg class="kanji" viewBox="190 180 650 670" aria-hidden="true"><path fill="currentColor" d="{KANJI}"/></svg>
       <div class="say" id="say" aria-live="polite"><span id="say-t"></span><span class="cur"></span></div>
-      <div class="girl" id="girl"><img src="{p}mascot/kurenai.png" width="527" height="1000" alt="{t['alt_mascot']}"></div>
+      <div class="girl" id="girl"><img src="{p}mascot/kurenai.png" width="519" height="1000" alt="{t['alt_mascot']}"></div>
       <div class="chip c1"><b>1</b>{html.escape(c[0])}</div>
       <div class="chip c2"><span class="sw"></span>{html.escape(c[1])}</div>
       <div class="chip c3"><b>3</b>{html.escape(c[2])}</div>
