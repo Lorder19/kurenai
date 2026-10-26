@@ -91,6 +91,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Scripted walk through history and the paste queue, for recording a demo GIF without touching the keyboard.
     private func runTour() {
         guard let screen = NSScreen.main?.visibleFrame else { return }
+        // Dark recording, so the GIF sits well on the site in either theme.
+        NSApp.appearance = NSAppearance(named: .darkAqua)
         let origin = NSPoint(x: screen.midX - 470, y: screen.midY - 220)
         historyPanel.setFrame(NSRect(x: origin.x, y: origin.y, width: 600, height: 440), display: true)
         queuePanel.setFrame(NSRect(x: origin.x + 620, y: origin.y + 60, width: 320, height: 330), display: true)
@@ -101,8 +103,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Plain backdrop so the recording shows Kurenai, not whatever is on your screen.
         let backdrop = NSWindow(contentRect: NSRect(x: origin.x - 30, y: origin.y - 40, width: 1000, height: 520),
                                 styleMask: .borderless, backing: .buffered, defer: false)
-        backdrop.backgroundColor = NSColor(srgbRed: 0.93, green: 0.91, blue: 0.88, alpha: 1)
-        backdrop.level = .normal
+        let fill = NSView()
+        fill.wantsLayer = true
+        fill.layer?.backgroundColor = NSColor(srgbRed: 0.08, green: 0.07, blue: 0.07, alpha: 1).cgColor
+        backdrop.contentView = fill
+        backdrop.isOpaque = true
+        // Above ordinary windows, below the panels (.floating).
+        backdrop.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue - 1)
         backdrop.isReleasedWhenClosed = false
         backdrop.orderFrontRegardless()
         tourBackdrop = backdrop

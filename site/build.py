@@ -68,8 +68,15 @@ def page(t):
         <a class="btn" href="{DL}">{APPLE}{t['cta']}</a>
         <a class="ghost" href="#play">{t['try_it']} <span>→</span></a>
       </div>
+      <p class="first">{t['first_run']}</p>
       <div class="brew"><code>brew install --cask <b>lorder19/tap/kurenai</b></code><button id="brew" data-ok="{t['copied']}">{t["copy_btn"]}</button></div>
       <p class="meta">{t['meta']}</p>
+      <div class="trust">
+        <a href="https://github.com/Lorder19/kurenai/stargazers"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg><b id="stars">5</b> {t['trust_stars']}</a>
+        <a href="https://github.com/jaywcjlove/awesome-mac#clipboard-tools">{t['trust_awesome']}</a>
+        <a href="#install">{t['trust_brew']}</a>
+        <a href="https://github.com/Lorder19/kurenai/blob/main/LICENSE">{t['trust_mit']}</a>
+      </div>
     </div>
     <div class="stage" id="stage" aria-hidden="false">
       <svg class="kanji" viewBox="190 180 650 670" aria-hidden="true"><path fill="currentColor" d="{KANJI}"/></svg>
@@ -200,6 +207,10 @@ def script(t):
   const caps = [...document.querySelectorAll('.cap')];
   if (!still) {{ let k = 0; setInterval(() => {{ const c = caps[k++ % caps.length]; c.classList.add('down'); setTimeout(() => c.classList.remove('down'), 220); }}, 1100); }}
   if (!mac) caps.forEach(c => c.querySelector('kbd').textContent = keyfix(c.querySelector('kbd').textContent));
+
+  // live star count, the number in the page is the fallback
+  fetch('https://api.github.com/repos/Lorder19/kurenai').then(r => r.ok ? r.json() : null)
+    .then(j => {{ if (j && j.stargazers_count) document.getElementById('stars').textContent = j.stargazers_count; }}).catch(() => {{}});
 
   // copy the brew command
   document.querySelectorAll('#brew, .brew2').forEach(b => b.onclick = () => {{

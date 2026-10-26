@@ -67,6 +67,15 @@ h1 em { font-style: normal; background: linear-gradient(92deg, var(--red) 10%, #
                padding: 8px 11px; border-radius: 8px; cursor: pointer; min-width: 64px; transition: background .2s; }
 .brew button.ok { background: var(--red); border-color: var(--red); color: #fff; }
 .meta { color: var(--faint); font-size: 14px; margin: 14px 0 0; }
+.first { font-size: 13px; color: var(--soft); margin: 12px 0 0; max-width: 34em; }
+.first b { color: var(--ink); font-weight: 600; }
+.first a { color: var(--soft); }
+.trust { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.trust a { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--soft); text-decoration: none;
+           border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; transition: color .2s, border-color .2s, transform .2s; }
+.trust a:hover { color: var(--ink); border-color: var(--faint); transform: translateY(-1px); }
+.trust svg { width: 14px; height: 14px; color: #e3a008; }
+.trust b { color: var(--ink); }
 
 .stage { position: relative; z-index: 1; height: 640px; }
 .kanji { position: absolute; right: 2%; top: 4%; width: 78%; opacity: .07; color: var(--red); }
