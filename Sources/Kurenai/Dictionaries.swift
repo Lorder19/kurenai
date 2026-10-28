@@ -68,25 +68,27 @@ final class Dictionaries: ObservableObject {
 
     // MARK: Download
 
-    private struct Entry: Decodable { let name: String; let type: String; let size: Int; let download_url: String? }
+    /// LibreOffice's folders, one per language. Kept here instead of asking the GitHub API, which allows only
+    /// 60 requests an hour without signing in; plain file links have no such limit.
+    private static let folders = ["af_ZA", "an_ES", "ar", "as_IN", "be_BY", "bg_BG", "bn_BD", "bo", "br_FR", "bs_BA", "ca",
+        "ckb", "cs_CZ", "da_DK", "de", "el_GR", "en", "eo", "es", "et_EE", "fa_IR", "fr_FR", "gd_GB", "gl", "gu_IN", "gug",
+        "he_IL", "hi_IN", "hr_HR", "hu_HU", "id", "is", "it_IT", "kmr_Latn", "kn_IN", "ko_KR", "lij_IT", "lo_LA", "lt_LT",
+        "lv_LV", "mn_MN", "mr_IN", "ne_NP", "nl_NL", "no", "oc_FR", "or_IN", "pa_IN", "pl_PL", "pt_BR", "pt_PT", "ro",
+        "ru_RU", "sa_IN", "si_LK", "sk_SK", "sl_SI", "sq_AL", "sr", "sv_SE", "sw_TZ", "ta_IN", "te_IN", "th_TH", "tr_TR",
+        "uk_UA", "vi", "zu_ZA"]
+    private static let raw = "https://raw.githubusercontent.com/\(repo)/master/"
 
     static func fetch(_ code: String, into folder: URL) async throws {
-        // LibreOffice keeps each language in a folder named after it: "be_BY", "kk", "sr"…
-        let root: [Entry] = try await get("https://api.github.com/repos/\(repo)/contents")
-        guard let dir = root.first(where: { $0.type == "dir" && ($0.name == code || $0.name.hasPrefix(code + "_")) }) else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        let files: [Entry] = try await get("https://api.github.com/repos/\(repo)/contents/\(dir.name)")
-        // A spelling pair is name.aff + name.dic; hyphenation (hyph_*) and thesaurus (th_*) files are skipped.
-        let affs = files.filter { $0.name.hasSuffix(".aff") && !$0.name.hasPrefix("hyph") && !$0.name.hasPrefix("th_") }
-        func dicFor(_ aff: Entry) -> Entry? { files.first { $0.name == aff.name.dropLast(4) + ".dic" } }
-        guard let aff = affs.first(where: { dicFor($0) != nil }), let dic = dicFor(aff) else { throw CocoaError(.fileNoSuchFile) }
+        guard let dir = folders.first(where: { $0 == code || $0.hasPrefix(code + "_") }) else { throw CocoaError(.fileNoSuchFile) }
+        // Each folder's dictionaries.xcu names its spelling pair: "%origin%/be-official.aff %origin%/be-official.dic".
+        let xcu = try await text(raw + dir + "/dictionaries.xcu")
+        guard let spell = xcu.components(separatedBy: "<node ").first(where: { $0.contains("DICT_SPELL") }),
+              let aff = fileName(in: spell, ext: "aff"), let dic = fileName(in: spell, ext: "dic") else { throw CocoaError(.fileReadCorruptFile) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // macOS names the language after the file, so save it as e.g. be_BY.aff / be_BY.dic.
-        let base = dir.name.contains("_") ? dir.name : code
-        for (entry, ext) in [(aff, "aff"), (dic, "dic")] {
-            guard entry.size <= maxFileSize, let link = entry.download_url, let url = URL(string: link),
-                  url.scheme == "https", url.host == "raw.githubusercontent.com" else { throw CocoaError(.fileReadTooLarge) }
+        let base = dir.contains("_") ? dir : code
+        for (name, ext) in [(String(aff), "aff"), (String(dic), "dic")] {
+            guard let url = URL(string: raw + dir + "/" + name) else { throw CocoaError(.fileReadInvalidFileName) }
             let (tmp, response) = try await session.download(from: url)
             guard (response as? HTTPURLResponse)?.statusCode == 200,
                   let size = try? FileManager.default.attributesOfItem(atPath: tmp.path)[.size] as? Int, size <= maxFileSize,
@@ -97,14 +99,23 @@ final class Dictionaries: ObservableObject {
         }
     }
 
+    /// "%origin%/be-official.aff" → "be-official.aff"; only plain file names, no paths.
+    private static func fileName(in xml: String, ext: String) -> String? {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_.-"))
+        for part in xml.components(separatedBy: "%origin%/").dropFirst() {
+            let name = String(part.prefix { $0.unicodeScalars.allSatisfy(allowed.contains) })
+            if name.hasSuffix("." + ext), !name.hasPrefix(".") { return name }
+        }
+        return nil
+    }
+
     private static let session = URLSession(configuration: .ephemeral)
 
-    private static func get<T: Decodable>(_ link: String) async throws -> T {
-        var req = URLRequest(url: URL(string: link)!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
-        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await session.data(for: req)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
-        return try JSONDecoder().decode(T.self, from: data)
+    private static func text(_ link: String) async throws -> String {
+        let (data, response) = try await session.data(from: URL(string: link)!)
+        guard (response as? HTTPURLResponse)?.statusCode == 200, data.count < 1_000_000,
+              let s = String(data: data, encoding: .utf8) else { throw URLError(.badServerResponse) }
+        return s
     }
 
     /// Hunspell files are plain text; refuse anything that isn't (a broken download or an HTML error page).

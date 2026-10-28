@@ -388,14 +388,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let layouts = KeyboardLayout.enabled()
             guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0), words: dictionary) else { nothing(); return }
             // Double Shift is a manual command: every word changes, jargon and names included.
-            _ = selected
             let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
             guard fixed != text else { nothing(); return }
             if field.replaceSelection(with: fixed) {
+                if !selected { field.restoreCaret(replaced: text, with: fixed) }
                 layoutMemory.noteFix(original: text, fixed: fixed)
                 if switchesLayout, let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
                 done?(fixed)
                 return
+            }
+        }
+        // No Accessibility text (some browsers, Electron): fix the word we watched you type, as long as you
+        // haven't moved the cursor since. Selections still go through copy and paste below.
+        if given == nil, let (word, tail) = lastTypedWord(), !word.isEmpty {
+            let layouts = KeyboardLayout.enabled()
+            if let way = LayoutFix.direction(for: word, among: layouts.map(\.0), words: dictionary) {
+                let fixed = LayoutFix.convert(word, from: way.from, to: way.to)
+                if fixed != word, replaceByTyping(old: word + tail, new: fixed + tail) {
+                    typed = TypedWord()
+                    for c in fixed { _ = typed.feed(.char(c)) }
+                    layoutMemory.noteFix(original: word, fixed: fixed)
+                    if switchesLayout, let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
+                    done?(fixed)
+                    return
+                }
             }
         }
         let saved = Paster.snapshot()
@@ -480,7 +496,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func handleShift(_ e: NSEvent) {
-        if e.type == .keyDown { handleTyping(e) } else if e.type != .flagsChanged { typed = TypedWord() }
+        if e.type == .keyDown { handleTyping(e) } else if e.type != .flagsChanged { typed = TypedWord(); finished = nil }
         guard e.type == .flagsChanged, e.keyCode == UInt16(kVK_RightShift) else { shiftDetector.other(); return }
         let others = e.modifierFlags.intersection([.command, .option, .control, .function])
         guard others.isEmpty else { shiftDetector.other(); return }
@@ -497,6 +513,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Fix while typing
 
     private var typed = TypedWord()
+    /// The word just ended with a Space, valid until the next key: what double Shift fixes when the app
+    /// gives no access to its text.
+    private var finished: (word: String, end: String, keys: Int)?
+
+    /// The word being typed, or the one you just finished with a Space (and the spaces after it).
+    private func lastTypedWord() -> (String, String)? {
+        if !typed.text.isEmpty { return (typed.text, "") }
+        if let f = finished, f.keys == keysSeen { return (f.word, f.end) }
+        return nil
+    }
     /// Every key you press; lets a delayed fix notice that you've kept typing.
     private var keysSeen = 0
     private var lastAuto: (original: String, fixed: String, end: String, from: String, pid: pid_t, at: Date)?
@@ -518,7 +544,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 typed = TypedWord(); return
             }
             // Return and Tab often submit or move focus; only Space is safe to retype after.
-            if e.keyCode == UInt16(kVK_Space) { autoFix(done.word, end: done.end) }
+            if e.keyCode == UInt16(kVK_Space) {
+                finished = (done.word, String(done.end), keysSeen)
+                autoFix(done.word, end: done.end)
+            } else { finished = nil }
             return
         default: break
         }

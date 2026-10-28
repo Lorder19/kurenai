@@ -142,11 +142,25 @@ struct FocusedText {
         guard let all = string(kAXValueAttribute), let r = range, r.length == 0, r.location > 0 else { return nil }
         let utf16 = Array(all.utf16)
         guard r.location <= utf16.count else { return nil }
-        var start = r.location
-        while start > 0, let ch = Unicode.Scalar(utf16[start - 1]), !CharacterSet.whitespacesAndNewlines.contains(ch) { start -= 1 }
-        guard start < r.location, select(CFRange(location: start, length: r.location - start)),
+        func isSpace(_ i: Int) -> Bool { Unicode.Scalar(utf16[i]).map(CharacterSet.whitespacesAndNewlines.contains) ?? false }
+        // "ghbdtn |" with the cursor after the space still means the word "ghbdtn".
+        var end = r.location
+        while end > 0, isSpace(end - 1) { end -= 1 }
+        var start = end
+        while start > 0, !isSpace(start - 1) { start -= 1 }
+        guard start < end, select(CFRange(location: start, length: end - start)),
               let word = string(kAXSelectedTextAttribute) else { return nil }
+        caretToRestore = r.location
         return (word, false)
+    }
+
+    /// Where the cursor was before the last word got selected, so it can go back there after the swap.
+    private(set) var caretToRestore: Int?
+
+    /// After replacing the last word, put the cursor back where you were typing.
+    func restoreCaret(replaced old: String, with new: String) {
+        guard let c = caretToRestore else { return }
+        _ = select(CFRange(location: c - old.utf16.count + new.utf16.count, length: 0))
     }
 
     /// Selects the `length` UTF-16 units right before the cursor and returns them.
