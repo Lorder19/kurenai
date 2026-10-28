@@ -96,6 +96,10 @@ final class Settings: ObservableObject {
     @Published var clearOnQuit: Bool {
         didSet { UserDefaults.standard.set(clearOnQuit, forKey: "clearOnQuit") }
     }
+    /// Retype a word typed in the wrong layout as soon as you finish it (Punto Switcher style).
+    @Published var autoFix: Bool {
+        didSet { UserDefaults.standard.set(autoFix, forKey: "autoFix") }
+    }
     /// Tap the right Shift twice: fix the selection or the last word, or just switch the layout.
     @Published var doubleShift: Bool {
         didSet { UserDefaults.standard.set(doubleShift, forKey: "doubleShift") }
@@ -106,6 +110,7 @@ final class Settings: ObservableObject {
         encryptStore = d.object(forKey: "encryptStore") == nil ? true : d.bool(forKey: "encryptStore")
         clearOnQuit = d.bool(forKey: "clearOnQuit")
         doubleShift = d.object(forKey: "doubleShift") == nil ? true : d.bool(forKey: "doubleShift")
+        autoFix = d.object(forKey: "autoFix") == nil ? true : d.bool(forKey: "autoFix")
         let saved = (d.data(forKey: "shortcuts")).flatMap { try? JSONDecoder().decode([ShortcutAction: Shortcut].self, from: $0) } ?? [:]
         shortcuts = Dictionary(uniqueKeysWithValues: ShortcutAction.allCases.map { ($0, saved[$0] ?? $0.defaultShortcut) })
         let limit = d.integer(forKey: "historyLimit")
@@ -179,12 +184,13 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle(L("Исправлять раскладку на лету"), isOn: $settings.autoFix)
                 Toggle(L("Двойной правый Shift меняет раскладку"), isOn: $settings.doubleShift)
                 DictionaryRow()
             } header: {
                 Text(L("Раскладка"))
             } footer: {
-                Text(L("Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если текста нет, просто сменится язык. Словари нужны, чтобы при трёх и больше раскладках выбрать правильную."))
+                Text(L("На лету: набрали «ghbdtn» и пробел — станет «привет», и язык переключится. Исправляются только слова, которые есть в словаре; если исправило зря, сразу нажмите правый Shift дважды, и после нескольких отмен слово запомнится. Двойной правый Shift вручную меняет выделенное или последнее слово, а без текста просто меняет язык. В терминалах, редакторах кода и полях пароля на лету не исправляет."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 

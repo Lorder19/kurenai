@@ -307,3 +307,68 @@ final class ManualFixTests: XCTestCase {
         XCTAssertEqual(LayoutFix.convert("ьуь", from: ru, to: en), "mem")
     }
 }
+
+final class AutoFixTests: XCTestCase {
+    lazy var en = KeyboardLayout.installed("com.apple.keylayout.ABC")!
+    lazy var ru = KeyboardLayout.installed("com.apple.keylayout.RussianWin")!
+    let dict = SystemDictionary()
+    func auto(_ w: String, _ from: KeyboardLayout, memory: LayoutMemory? = nil) -> String? {
+        AutoFix.decide(word: w, typedIn: from, layouts: [en, ru], words: dict, memory: memory)?.fixed
+    }
+
+    func testFixesWordsTypedInTheWrongLayout() {
+        XCTAssertEqual(auto("ghbdtn", en), "привет")
+        XCTAssertEqual(auto("Ghbdtn", en), "Привет")
+        XCTAssertEqual(auto("gjxtve", en), "почему")
+        XCTAssertEqual(auto("hf,jnftn", en), "работает")
+        XCTAssertEqual(auto("руддщ", ru), "hello")
+        XCTAssertEqual(auto("цщкдв", ru), "world")
+    }
+
+    func testLeavesRealWordsAlone() {
+        XCTAssertNil(auto("hello", en))
+        XCTAssertNil(auto("привет", ru))
+        XCTAssertNil(auto("iPhone", en))
+        XCTAssertNil(auto("ok", en))
+    }
+
+    func testOneLetterWords() {
+        XCTAssertEqual(auto("b", en), "и")
+        XCTAssertEqual(auto("d", en), "в")
+        XCTAssertEqual(auto("Z", en), "Я")
+        XCTAssertNil(auto("a", en), "English \"a\" stays")
+        XCTAssertNil(auto("и", ru))
+        XCTAssertEqual(auto("ш", ru), "i")
+        XCTAssertNil(auto("x", en), "ч is not a one-letter word")
+    }
+
+    func testHyphenatedWord() {
+        XCTAssertEqual(auto("gjxtve-nj", en), "почему-то")
+    }
+
+    func testLeavesGibberishBothWays() {
+        XCTAssertNil(auto("qwrtz", en))
+        XCTAssertNil(auto("asdfgh", en))
+    }
+
+    func testSkipsLinksMailAndNumbers() {
+        XCTAssertNil(auto("https://ghbdtn", en))
+        XCTAssertNil(auto("ghbdtn@mail", en))
+        XCTAssertNil(auto("2026", en))
+    }
+
+    func testRememberedWordStays() {
+        XCTAssertNil(auto("ghbdtn", en, memory: LayoutMemory(reverts: ["ghbdtn": 3])))
+    }
+
+    func testTypedWordTracking() {
+        var t = TypedWord()
+        for c in "ghbdtm" { _ = t.feed(.char(c)) }
+        _ = t.feed(.backspace); _ = t.feed(.char("n"))
+        let done = t.feed(.boundary(" "))
+        XCTAssertEqual(done?.word, "ghbdtn")
+        XCTAssertNil(t.feed(.boundary(" ")), "two spaces don't make a word")
+        _ = t.feed(.char("x")); _ = t.feed(.reset)
+        XCTAssertNil(t.feed(.boundary(" ")))
+    }
+}

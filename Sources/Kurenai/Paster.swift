@@ -27,6 +27,11 @@ enum Paster {
     static func sendCommandV(to target: NSRunningApplication? = nil) { sendCommand(9, to: target) }
     static func sendCommandC(to target: NSRunningApplication? = nil) { sendCommand(8, to: target) }
 
+    /// Deletes `count` characters before the cursor in the frontmost app.
+    static func sendBackspaces(_ count: Int) {
+        for _ in 0..<count { sendKey(51, flags: [], to: nil); usleep(4_000) }
+    }
+
     /// Everything on the clipboard, every type of every item, so it can be put back after a temporary write.
     static func snapshot() -> [[NSPasteboard.PasteboardType: Data]] {
         (NSPasteboard.general.pasteboardItems ?? []).map { item in

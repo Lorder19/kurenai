@@ -149,6 +149,20 @@ struct FocusedText {
         return (word, false)
     }
 
+    /// Selects the `length` UTF-16 units right before the cursor and returns them.
+    func selectBeforeCaret(length: Int) -> String? {
+        guard let r = range, r.length == 0, r.location >= length,
+              select(CFRange(location: r.location - length, length: length)) else { return nil }
+        return string(kAXSelectedTextAttribute)
+    }
+
+    /// Password fields don't expose their text, and we must not touch them anyway.
+    var isSecure: Bool {
+        var v: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &v)
+        return (v as? String) == (kAXSecureTextFieldSubrole as String)
+    }
+
     /// Replaces the selection. Returns false when the app ignores the write.
     func replaceSelection(with text: String) -> Bool {
         let before = string(kAXValueAttribute)
@@ -181,6 +195,14 @@ final class LayoutMemory {
     }
 
     func isKept(_ word: String) -> Bool { (reverts[Self.key(word)] ?? 0) >= Self.threshold }
+
+    /// An automatic fix you undid right away: the word was right as typed.
+    func noteAutoRevert(_ word: String) {
+        let k = Self.key(word)
+        guard !k.isEmpty else { return }
+        reverts[k, default: 0] += 1
+        save(reverts)
+    }
 
     /// Call after every fix. Detects a revert of the previous fix and counts the words that were right before.
     func noteFix(original: String, fixed: String, at now: Date = Date()) {
@@ -289,5 +311,66 @@ extension LayoutFix {
         }
         flush()
         return out
+    }
+}
+
+/// Punto-style correction while you type: when a word you just finished (with Space, Tab or Return) isn't
+/// a word in the layout it was typed in but is a real word in another layout, it's retyped there.
+enum AutoFix {
+    /// Characters a word may end with that aren't part of it ("ghbdtn," ends with a comma… or a "б").
+    private static func letters(_ s: String) -> String {
+        s.trimmingCharacters(in: .punctuationCharacters.union(.symbols))
+    }
+
+    /// One-letter words dictionaries don't help with: "b" typed for "и", "f" for "а".
+    private static let oneLetterWords: [String: Set<String>] = [
+        "ru": ["а", "в", "и", "к", "о", "с", "у", "я"], "uk": ["а", "в", "і", "й", "з", "о", "у", "я"],
+        "be": ["а", "в", "і", "з", "у", "я"], "en": ["a", "i"],
+    ]
+
+    static func decide(word: String, typedIn from: KeyboardLayout, layouts: [KeyboardLayout],
+                       words: WordList, memory: LayoutMemory?) -> (fixed: String, to: KeyboardLayout)? {
+        let core = letters(word)
+        if core.count == 1, core == word, memory?.isKept(word) != true {
+            let typed = core.lowercased()
+            guard oneLetterWords[from.language]?.contains(typed) != true else { return nil }
+            for to in layouts where to.id != from.id {
+                let fixed = LayoutFix.convert(word, from: from, to: to)
+                if oneLetterWords[to.language]?.contains(fixed.lowercased()) == true { return (fixed, to) }
+            }
+            return nil
+        }
+        guard core.count >= 2, core.contains(where: \.isLetter), !core.allSatisfy(\.isNumber),
+              !word.contains("://"), !word.contains("@"), !word.contains("/"),
+              memory?.isKept(word) != true else { return nil }
+        // Already a word where you typed it: leave it.
+        if words.isWord(core, language: from.language) { return nil }
+        for to in layouts where to.id != from.id {
+            let fixed = LayoutFix.convert(word, from: from, to: to)
+            guard fixed != word else { continue }
+            let fixedCore = letters(fixed)
+            if fixedCore.count >= 2, words.isWord(fixedCore, language: to.language) { return (fixed, to) }
+        }
+        return nil
+    }
+}
+
+/// The word being typed right now, rebuilt from global key events.
+struct TypedWord {
+    private(set) var text = ""
+
+    enum Event { case char(Character), backspace, boundary(Character), reset }
+
+    /// Returns the finished word and the character that ended it.
+    mutating func feed(_ e: Event) -> (word: String, end: Character)? {
+        switch e {
+        case .char(let c): text.append(c)
+        case .backspace: if !text.isEmpty { text.removeLast() }
+        case .reset: text = ""
+        case .boundary(let end):
+            defer { text = "" }
+            return text.isEmpty ? nil : (text, end)
+        }
+        return nil
     }
 }

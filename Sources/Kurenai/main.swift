@@ -480,6 +480,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func handleShift(_ e: NSEvent) {
+        if e.type == .keyDown { handleTyping(e) } else if e.type != .flagsChanged { typed = TypedWord() }
         guard e.type == .flagsChanged, e.keyCode == UInt16(kVK_RightShift) else { shiftDetector.other(); return }
         let others = e.modifierFlags.intersection([.command, .option, .control, .function])
         guard others.isEmpty else { shiftDetector.other(); return }
@@ -488,7 +489,100 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // In a password field macOS turns on Secure Input; don't read or retype anything there.
         guard Settings.shared.doubleShift, !IsSecureEventInputEnabled(),
               !Self.shiftShiftApps.contains(where: front.hasPrefix) else { return }
+        // Right after an automatic fix, double Shift undoes it.
+        if undoLastAutoFix() { return }
         fixLayout(orSwitch: true)
+    }
+
+    // MARK: Fix while typing
+
+    private var typed = TypedWord()
+    private var lastAuto: (original: String, fixed: String, end: String, from: String, pid: pid_t, at: Date)?
+
+    /// Where autocorrect would get in the way: shells, code, remote machines.
+    private static let noAutoFixApps = [
+        "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.", "net.kovidgoyal.kitty", "com.mitchellh.ghostty",
+        "io.alacritty", "co.zeit.hyper", "com.apple.dt.Xcode", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92",
+        "com.jetbrains.", "com.google.android.studio", "com.sublimetext.", "dev.zed.Zed", "com.panic.Nova",
+    ]
+
+    private func handleTyping(_ e: NSEvent) {
+        let mods = e.modifierFlags.intersection([.command, .control, .option, .function])
+        switch Int(e.keyCode) {
+        case kVK_Delete: _ = typed.feed(.backspace); return
+        case kVK_Space, kVK_Return, kVK_Tab, kVK_ANSI_KeypadEnter:
+            guard mods.isEmpty, let done = typed.feed(.boundary(e.keyCode == UInt16(kVK_Space) ? " " : e.keyCode == UInt16(kVK_Tab) ? "\t" : "\n")) else {
+                typed = TypedWord(); return
+            }
+            // Return and Tab often submit or move focus; only Space is safe to retype after.
+            if e.keyCode == UInt16(kVK_Space) { autoFix(done.word, end: done.end) }
+            return
+        default: break
+        }
+        guard mods.isEmpty, let chars = e.characters, chars.count == 1, let c = chars.first,
+              !c.isWhitespace, c.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value < 0xF700 }) else {
+            typed = TypedWord(); return   // arrows, Escape, shortcuts: we no longer know where the cursor is
+        }
+        _ = typed.feed(.char(c))
+        lastAuto = nil
+    }
+
+    private func autoFix(_ word: String, end: Character) {
+        guard Settings.shared.autoFix, !fixingLayout, !IsSecureEventInputEnabled(),
+              let app = NSWorkspace.shared.frontmostApplication, app != .current,
+              !Paster.isRemoteDesktop(app),
+              !Self.noAutoFixApps.contains(where: { (app.bundleIdentifier ?? "").hasPrefix($0) }) else { return }
+        let all = KeyboardLayout.enabled()
+        guard let current = currentLayoutID(), let from = all.first(where: { $0.0.id == current })?.0,
+              let (fixed, to) = AutoFix.decide(word: word, typedIn: from, layouts: all.map(\.0), words: dictionary, memory: layoutMemory)
+        else { return }
+        let endText = String(end)
+        // Let the app take the Space first, then swap "word " for "fixed ".
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
+            guard let self else { return }
+            guard self.replaceBeforeCaret(in: app, old: word + endText, new: fixed + endText) else { return }
+            if let source = all.first(where: { $0.0.id == to.id })?.1 { TISSelectInputSource(source) }
+            self.lastAuto = (word, fixed, endText, from.id, app.processIdentifier, Date())
+        }
+    }
+
+    /// Replaces the text just before the cursor. Accessibility when the app supports it, otherwise
+    /// Backspace over it and paste the new text (clipboard put back afterwards).
+    @discardableResult
+    private func replaceBeforeCaret(in app: NSRunningApplication, old: String, new: String) -> Bool {
+        if let field = FocusedText(pid: app.processIdentifier) {
+            if field.isSecure { return false }
+            if field.selectBeforeCaret(length: old.utf16.count) == old, field.replaceSelection(with: new) { return true }
+        }
+        let saved = Paster.snapshot()
+        fixingLayout = true
+        Paster.sendBackspaces(old.count)
+        Paster.write(new)
+        monitor.ignoreCurrentChange()
+        Paster.sendCommandV(to: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            Paster.restore(saved)
+            self?.monitor.ignoreCurrentChange()
+            self?.fixingLayout = false
+        }
+        return true
+    }
+
+    /// Double Shift right after an automatic fix: put the word back, switch back, and remember it.
+    private func undoLastAutoFix() -> Bool {
+        guard let last = lastAuto, Date().timeIntervalSince(last.at) < 10, typed.text.isEmpty,
+              let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier == last.pid else { return false }
+        lastAuto = nil
+        replaceBeforeCaret(in: app, old: last.fixed + last.end, new: last.original + last.end)
+        if let source = KeyboardLayout.enabled().first(where: { $0.0.id == last.from })?.1 { TISSelectInputSource(source) }
+        layoutMemory.noteAutoRevert(last.original)
+        return true
+    }
+
+    private func currentLayoutID() -> String? {
+        guard let src = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let ptr = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { return nil }
+        return Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
     }
 
     private func waitForPasteboard(after count: Int, until deadline: Date, _ then: @escaping () -> Void) {
@@ -509,6 +603,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let parts = spec.split(separator: ",")
             let caret = parts.first == "caret", n = parts.compactMap { Int($0) }
             _ = field.select(caret ? CFRange(location: n.last ?? 0, length: 0) : CFRange(location: n.first ?? 0, length: n.last ?? 0))
+        }
+        // `-KurenaiAutoFixWord ghbdtn`: the word was just typed followed by a space; run the while-typing fix.
+        if let word = Demo.argument("KurenaiAutoFixWord") {
+            let all = KeyboardLayout.enabled().map(\.0)
+            guard let from = LayoutFix.direction(for: word, among: all)?.from,
+                  let (fixed, _) = AutoFix.decide(word: word, typedIn: from, layouts: all, words: dictionary, memory: layoutMemory) else {
+                print("FIXED: <nothing>"); exit(1)
+            }
+            let ok = replaceBeforeCaret(in: app, old: word + " ", new: fixed + " ")
+            print("FIXED:", ok ? fixed : "<replace failed>")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { exit(ok ? 0 : 1) }
+            return
         }
         fixLayout(in: app) { result in
             print("FIXED:", result ?? "<nothing>")
