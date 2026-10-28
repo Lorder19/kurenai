@@ -4,7 +4,8 @@ import Carbon
 /// Retypes text that was typed in the wrong keyboard layout ("ghbdtn" → "привет", "руддщ" → "hello").
 /// The mapping comes from the layouts enabled in macOS, so any pair works (ABC/Russian, US/Ukrainian, …).
 struct KeyboardLayout {
-    struct Key: Hashable { let code: UInt16; let shift: Bool }
+    /// A physical key plus the modifiers held: 0 plain, 1 Shift, 2 Option, 3 Shift+Option.
+    struct Key: Hashable { let code: UInt16; let mods: Int }
 
     let id: String
     let charToKey: [Character: Key]
@@ -14,15 +15,16 @@ struct KeyboardLayout {
         self.id = id
         self.keyToChar = keyToChar
         var reverse: [Character: Key] = [:]
-        // Prefer the unshifted key when two keys give the same character.
-        for (key, ch) in keyToChar.sorted(by: { !$0.key.shift && $1.key.shift }) where reverse[ch] == nil {
+        // When several keys give the same character, prefer the one with the fewest modifiers.
+        for (key, ch) in keyToChar.sorted(by: { ($0.key.mods, $0.key.code) < ($1.key.mods, $1.key.code) }) where reverse[ch] == nil {
             reverse[ch] = key
         }
         charToKey = reverse
     }
 
-    /// Reads a layout's printable characters for every key, with and without Shift.
-    init?(source: TISInputSource) {
+    /// Reads every printable character the layout gives on this Mac's keyboard (ISO, ANSI or JIS, as macOS
+    /// reports it), for each key plain, with Shift, with Option and with Shift+Option.
+    init?(source: TISInputSource, keyboardType: UInt32 = UInt32(LMGetKbdType())) {
         guard let idPtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID),
               let dataPtr = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else { return nil }
         let id = Unmanaged<CFString>.fromOpaque(idPtr).takeUnretainedValue() as String
@@ -30,16 +32,18 @@ struct KeyboardLayout {
         var map: [Key: Character] = [:]
         data.withUnsafeBytes { raw in
             guard let layout = raw.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return }
-            for code in UInt16(0)..<UInt16(51) {   // the letter, digit and punctuation block
-                for shift in [false, true] {
+            let layers: [UInt32] = [0, UInt32(shiftKey >> 8), UInt32(optionKey >> 8), UInt32((shiftKey | optionKey) >> 8)]
+            for code in UInt16(0)..<UInt16(128) where !Self.keypad.contains(code) {
+                for (m, mods) in layers.enumerated() {
                     var dead: UInt32 = 0, length = 0
                     var chars = [UniChar](repeating: 0, count: 4)
-                    let mods: UInt32 = shift ? UInt32(shiftKey >> 8) : 0
-                    let status = UCKeyTranslate(layout, code, UInt16(kUCKeyActionDown), mods, UInt32(LMGetKbdType()),
+                    let status = UCKeyTranslate(layout, code, UInt16(kUCKeyActionDown), mods, keyboardType,
                                                 OptionBits(kUCKeyTranslateNoDeadKeysBit), &dead, chars.count, &length, &chars)
-                    guard status == noErr, length == 1, let s = String(utf16CodeUnits: chars, count: 1).first,
-                          !s.isWhitespace, s.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) else { continue }
-                    map[Key(code: code, shift: shift)] = s
+                    guard status == noErr, length >= 1, let s = String(utf16CodeUnits: chars, count: length).first,
+                          String(s).utf16.count == length,       // exactly one character
+                          !s.isWhitespace, s.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value != 0x7F }),
+                          !(0xF700...0xF8FF).contains(s.unicodeScalars.first!.value) else { continue }  // arrows, F-keys
+                    map[Key(code: code, mods: m)] = s
                 }
             }
         }
@@ -47,11 +51,20 @@ struct KeyboardLayout {
         self.init(id: id, keyToChar: map)
     }
 
+    /// The numeric keypad types the same digits in every layout, so it says nothing about which one was used.
+    private static let keypad: Set<UInt16> = Set(65...92)
+
     /// Keyboard layouts the user can switch between in the menu bar.
-    static func enabled() -> [(KeyboardLayout, TISInputSource)] {
-        let filter = [kTISPropertyInputSourceCategory as String: kTISCategoryKeyboardInputSource as Any,
-                      kTISPropertyInputSourceIsSelectCapable as String: true] as CFDictionary
-        guard let list = TISCreateInputSourceList(filter, false)?.takeRetainedValue() as? [TISInputSource] else { return [] }
+    static func enabled() -> [(KeyboardLayout, TISInputSource)] { list(installed: false) }
+
+    /// Every keyboard layout macOS has, enabled or not (for tests).
+    static func installed(_ id: String) -> KeyboardLayout? { list(installed: true, id: id).first?.0 }
+
+    private static func list(installed: Bool, id: String? = nil) -> [(KeyboardLayout, TISInputSource)] {
+        var filter: [String: Any] = [kTISPropertyInputSourceCategory as String: kTISCategoryKeyboardInputSource as Any,
+                                     kTISPropertyInputSourceIsSelectCapable as String: true]
+        if let id { filter[kTISPropertyInputSourceID as String] = id }
+        guard let list = TISCreateInputSourceList(filter as CFDictionary, installed)?.takeRetainedValue() as? [TISInputSource] else { return [] }
         return list.compactMap { src in KeyboardLayout(source: src).map { ($0, src) } }
     }
 }

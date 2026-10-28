@@ -1,3 +1,4 @@
+import Carbon
 import XCTest
 @testable import Kurenai
 
@@ -162,5 +163,63 @@ final class DoubleShiftTests: XCTestCase {
         _ = d.shift(down: true, at: 0); _ = d.shift(down: false, at: 0.05)
         _ = d.shift(down: true, at: 0.1); XCTAssertTrue(d.shift(down: false, at: 0.15))
         _ = d.shift(down: true, at: 0.2); XCTAssertFalse(d.shift(down: false, at: 0.25))
+    }
+}
+
+/// The mapping must come from the layouts themselves, for any pair, not from a built-in Russian table.
+final class LayoutPairsTests: XCTestCase {
+    func pair(_ a: String, _ b: String) throws -> (KeyboardLayout, KeyboardLayout) {
+        (try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout." + a), a),
+         try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout." + b), b))
+    }
+
+    /// Every character typeable in both layouts goes there and back unchanged.
+    func roundTrip(_ a: KeyboardLayout, _ b: KeyboardLayout, file: StaticString = #filePath, line: UInt = #line) {
+        var checked = 0
+        for (key, ch) in a.keyToChar where key.mods < 2 && b.keyToChar[key] != nil {
+            let there = LayoutFix.convert(String(ch), from: a, to: b)
+            let back = LayoutFix.convert(there, from: b, to: a)
+            XCTAssertEqual(back, String(a.keyToChar[a.charToKey[ch]!]!), "\(a.id) \(ch) → \(there)", file: file, line: line)
+            checked += 1
+        }
+        XCTAssertGreaterThan(checked, 80, file: file, line: line)
+    }
+
+    func testAbcRussianPC() throws {
+        let (en, ru) = try pair("ABC", "RussianWin")
+        roundTrip(en, ru); roundTrip(ru, en)
+        XCTAssertEqual(LayoutFix.convert("ghbdtn", from: en, to: ru), "привет")
+    }
+
+    func testAbcRussianMac() throws {
+        // The Mac "Russian" layout puts punctuation elsewhere than "Russian – PC"; the mapping must follow it.
+        let (en, ru) = try pair("ABC", "Russian")
+        roundTrip(en, ru); roundTrip(ru, en)
+        XCTAssertEqual(LayoutFix.convert("ghbdtn", from: en, to: ru), "привет")
+        let pc = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.RussianWin"))
+        XCTAssertNotEqual(ru.charToKey[","], pc.charToKey[","], "comma sits on different keys in the two Russian layouts")
+    }
+
+    func testUsUkrainian() throws {
+        let (en, ua) = try pair("US", "Ukrainian-PC")
+        roundTrip(en, ua); roundTrip(ua, en)
+        XCTAssertEqual(LayoutFix.convert("ghbdsn", from: en, to: ua), "привіт")
+    }
+
+    func testOptionLayerIsRead() throws {
+        let (en, _) = try pair("ABC", "RussianWin")
+        XCTAssertTrue(en.keyToChar.keys.contains { $0.mods >= 2 }, "Option characters are part of the map")
+        XCTAssertEqual(en.charToKey["a"]?.mods, 0, "plain key wins over Option for the same character")
+    }
+
+    func testKeyboardTypeMatters() throws {
+        // On an ISO keyboard (the one in this Mac) the extra § key (code 10) exists and gets its character
+        // from the layout itself; on ANSI it isn't there at all.
+        let abc = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.ABC"))
+        let ru = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.RussianWin"))
+        if KBGetLayoutType(Int16(LMGetKbdType())) == kKeyboardISO {
+            XCTAssertNotNil(abc.keyToChar[.init(code: 10, mods: 0)])
+            XCTAssertEqual(ru.keyToChar[.init(code: 10, mods: 0)], "ё")
+        }
     }
 }
