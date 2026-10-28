@@ -156,6 +156,25 @@ struct FocusedText {
         return string(kAXSelectedTextAttribute)
     }
 
+    /// Finds `old` ending shortly before the cursor (you may have typed a few more letters since) and swaps it
+    /// for `new`, keeping the cursor after whatever you typed. Returns false if the text isn't there (yet).
+    func replace(_ old: String, nearCaretWith new: String, slack: Int = 40) -> Bool {
+        guard let all = string(kAXValueAttribute), let r = range, r.length == 0 else { return false }
+        let text = Array(all.utf16), o = Array(old.utf16), caret = r.location
+        guard caret <= text.count, o.count <= caret else { return false }
+        var start = caret - o.count
+        let lowest = max(0, caret - o.count - slack)
+        while start >= lowest, Array(text[start..<start + o.count]) != o { start -= 1 }
+        guard start >= lowest, select(CFRange(location: start, length: o.count)),
+              string(kAXSelectedTextAttribute) == old, replaceSelection(with: new) else { return false }
+        // Put the cursor back where you were typing, shifted by the length change.
+        _ = select(CFRange(location: caret - o.count + new.utf16.count, length: 0))
+        return true
+    }
+
+    /// Whether the field exposes its text at all (most native apps do).
+    var hasText: Bool { string(kAXValueAttribute) != nil && range != nil }
+
     /// Password fields don't expose their text, and we must not touch them anyway.
     var isSecure: Bool {
         var v: CFTypeRef?

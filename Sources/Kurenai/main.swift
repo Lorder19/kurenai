@@ -497,6 +497,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Fix while typing
 
     private var typed = TypedWord()
+    /// Every key you press; lets a delayed fix notice that you've kept typing.
+    private var keysSeen = 0
     private var lastAuto: (original: String, fixed: String, end: String, from: String, pid: pid_t, at: Date)?
 
     /// Where autocorrect would get in the way: shells, code, remote machines.
@@ -507,6 +509,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     ]
 
     private func handleTyping(_ e: NSEvent) {
+        keysSeen += 1
         let mods = e.modifierFlags.intersection([.command, .control, .option, .function])
         switch Int(e.keyCode) {
         case kVK_Delete: _ = typed.feed(.backspace); return
@@ -537,23 +540,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let (fixed, to) = AutoFix.decide(word: word, typedIn: from, layouts: all.map(\.0), words: dictionary, memory: layoutMemory)
         else { return }
         let endText = String(end)
-        // Let the app take the Space first, then swap "word " for "fixed ".
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
-            guard let self else { return }
-            guard self.replaceBeforeCaret(in: app, old: word + endText, new: fixed + endText) else { return }
+        let keysAtSpace = keysSeen
+        // The app may not have inserted the Space yet; try right away and keep trying for a moment.
+        attemptAutoFix(app: app, old: word + endText, new: fixed + endText, keysAtSpace: keysAtSpace, tries: 15) { [weak self] ok in
+            guard ok, let self else { return }
             if let source = all.first(where: { $0.0.id == to.id })?.1 { TISSelectInputSource(source) }
             self.lastAuto = (word, fixed, endText, from.id, app.processIdentifier, Date())
         }
     }
 
-    /// Replaces the text just before the cursor. Accessibility when the app supports it, otherwise
-    /// Backspace over it and paste the new text (clipboard put back afterwards).
+    private func attemptAutoFix(app: NSRunningApplication, old: String, new: String, keysAtSpace: Int, tries: Int,
+                                done: @escaping (Bool) -> Void) {
+        if let field = FocusedText(pid: app.processIdentifier), field.hasText {
+            if field.isSecure { done(false); return }
+            if field.replace(old, nearCaretWith: new) { done(true); return }
+            guard tries > 0 else { done(false); return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                self?.attemptAutoFix(app: app, old: old, new: new, keysAtSpace: keysAtSpace, tries: tries - 1, done: done)
+            }
+            return
+        }
+        // No Accessibility text here: Backspace over the word, but only if you haven't typed anything since,
+        // otherwise we'd erase your new letters. Skipping a fix is better than breaking text.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+            guard let self, self.keysSeen == keysAtSpace else { done(false); return }
+            done(self.replaceByTyping(old: old, new: new))
+        }
+    }
+
+    /// Replaces the text just before the cursor: Accessibility when possible, otherwise Backspace + paste.
     @discardableResult
     private func replaceBeforeCaret(in app: NSRunningApplication, old: String, new: String) -> Bool {
-        if let field = FocusedText(pid: app.processIdentifier) {
-            if field.isSecure { return false }
-            if field.selectBeforeCaret(length: old.utf16.count) == old, field.replaceSelection(with: new) { return true }
+        if let field = FocusedText(pid: app.processIdentifier), field.hasText {
+            return !field.isSecure && field.replace(old, nearCaretWith: new)
         }
+        return replaceByTyping(old: old, new: new)
+    }
+
+    private func replaceByTyping(old: String, new: String) -> Bool {
         let saved = Paster.snapshot()
         fixingLayout = true
         Paster.sendBackspaces(old.count)
