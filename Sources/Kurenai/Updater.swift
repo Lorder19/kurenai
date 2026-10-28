@@ -55,7 +55,11 @@ final class Updater: ObservableObject {
                 if Self.isNewer(version, than: self.current) {
                     let assets = json["assets"] as? [[String: Any]] ?? []
                     let zip = assets.first { ($0["name"] as? String) == "Kurenai.zip" }?["browser_download_url"] as? String
-                    found = Release(version: version, page: page, zip: zip.flatMap(URL.init(string:)))
+                    // Only ever download from GitHub over https; the signature check is the real gate, this is belt and braces.
+                    let url = zip.flatMap(URL.init(string:)).flatMap { u in
+                        u.scheme == "https" && ["github.com", "objects.githubusercontent.com"].contains(u.host ?? "") ? u : nil
+                    }
+                    found = Release(version: version, page: page, zip: url)
                     result = String(format: L("Доступна версия %@"), version)
                 } else {
                     result = L("У вас последняя версия")
@@ -152,7 +156,8 @@ final class Updater: ObservableObject {
               SecStaticCodeCreateWithPath(app as CFURL, [], &theirs) == errSecSuccess, let theirs else {
             throw CocoaError(.fileReadNoPermission)
         }
-        let status = SecStaticCodeCheckValidity(theirs, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), myReq)
+        let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
+        let status = SecStaticCodeCheckValidity(theirs, flags, myReq)
         guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
     }
 

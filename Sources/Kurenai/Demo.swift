@@ -4,7 +4,15 @@ import AppKit
 /// Runs on throwaway sample data in a temp folder, never reads or records the real clipboard,
 /// registers no shortcuts and leaves the real history and settings untouched.
 enum Demo {
-    static let panel = UserDefaults.standard.string(forKey: "KurenaiDemo")
+    static let panel = argument("KurenaiDemo")
+
+    /// A `-Name value` launch argument. Deliberately not UserDefaults: a value saved with `defaults write`
+    /// would switch these modes on for every launch.
+    static func argument(_ name: String) -> String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-" + name), i + 1 < args.count else { return nil }
+        return args[i + 1]
+    }
     static var isOn: Bool { panel != nil }
 
     static let directory: URL = {

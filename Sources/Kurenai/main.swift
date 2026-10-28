@@ -20,8 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if Demo.isOn { startDemo(); return }
-        let probe = UserDefaults.standard.integer(forKey: "KurenaiFixLayoutPid")
-        if probe > 0 { runLayoutFixProbe(pid: Int32(probe)); return }
+        #if DEBUG
+        // Test hook, debug builds only: release builds must not let another process drive Accessibility through us.
+        if let probe = Demo.argument("KurenaiFixLayoutPid").flatMap(Int32.init), probe > 0 { runLayoutFixProbe(pid: probe); return }
+        #endif
         if Self.anotherInstanceKeepsRunning() { NSApp.terminate(nil); return }
         if AppMover.renameLegacyBundleIfNeeded() { return }
         if AppMover.offerMoveIfNeeded() { return }
@@ -411,12 +413,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    #if DEBUG
     /// `Kurenai -KurenaiFixLayoutPid <pid>`: runs one layout fix against that app without focusing it,
     /// prints the result and quits. Lets the feature be tested on a background TextEdit window.
     private func runLayoutFixProbe(pid: Int32) {
         guard let app = NSRunningApplication(processIdentifier: pid) else { print("no app"); exit(2) }
         // `-KurenaiFixLayoutSelect start,length` selects a range first; `-KurenaiFixLayoutSelect caret,N` puts the cursor at N.
-        if let spec = UserDefaults.standard.string(forKey: "KurenaiFixLayoutSelect"), let field = FocusedText(pid: pid) {
+        if let spec = Demo.argument("KurenaiFixLayoutSelect"), let field = FocusedText(pid: pid) {
             let parts = spec.split(separator: ",")
             let caret = parts.first == "caret", n = parts.compactMap { Int($0) }
             _ = field.select(caret ? CFRange(location: n.last ?? 0, length: 0) : CFRange(location: n.first ?? 0, length: n.last ?? 0))
@@ -426,6 +429,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { exit(result == nil ? 1 : 0) }
         }
     }
+    #endif
 
     // MARK: Paste
 

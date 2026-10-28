@@ -44,7 +44,9 @@ final class Store: ObservableObject {
 
     private init() {
         let dir = Self.directory
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        // Older builds created it 0755; temp files from atomic writes must not be visible to other accounts.
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
         fileURL = dir.appendingPathComponent("store.json")
         guard let raw = try? Data(contentsOf: fileURL) else { return }
         if let data = try? (Vault.isEncrypted(raw) ? Vault.open(raw) : raw),

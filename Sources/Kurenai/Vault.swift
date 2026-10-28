@@ -47,8 +47,13 @@ enum Vault {
         guard let raw = fromKeychain ?? (create ? SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) } : nil) else {
             throw CocoaError(.fileReadNoPermission)
         }
-        try raw.write(to: keyURL, options: .withoutOverwriting) // .atomic can't be combined with it
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyURL.path)
+        try FileManager.default.createDirectory(at: keyURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+        // O_EXCL: never overwrite or follow an existing key file; 0600 from the first byte.
+        let fd = Darwin.open(keyURL.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { Darwin.close(fd) }
+        guard raw.withUnsafeBytes({ Darwin.write(fd, $0.baseAddress, $0.count) }) == raw.count else { throw POSIXError(.EIO) }
         if fromKeychain != nil {
             SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)
         }
