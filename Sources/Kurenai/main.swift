@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         monitor.start()
 
         registerShortcuts()
+        startDoubleShift()
         Settings.shared.onEncryptionChange = { [weak self] in self?.queue.rewrite() }
         Settings.shared.onShortcutsChange = { [weak self] in self?.registerShortcuts() }
         Settings.shared.onRecording = { [weak self] on in self?.hotKeys.forEach { $0.setEnabled(!on) } }
@@ -354,20 +355,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var fixingLayout = false
 
+    /// Words you keep changing back, kept next to the history (encrypted like it).
+    private lazy var layoutMemory: LayoutMemory = {
+        let url = Store.directory.appendingPathComponent("layout-memory.json")
+        let raw = (try? Data(contentsOf: url)).flatMap { try? (Vault.isEncrypted($0) ? Vault.open($0) : $0) }
+        let saved = raw.flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
+        return LayoutMemory(reverts: saved) { reverts in
+            guard var data = try? JSONEncoder().encode(reverts) else { return }
+            if Settings.shared.encryptStore { guard let sealed = try? Vault.seal(data) else { return }; data = sealed }
+            try? data.write(to: url, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        }
+    }()
+
     /// ⌥⌘K: copies the selection, retypes it in the other keyboard layout ("ghbdtn" → "привет"), pastes it
     /// over the selection and switches the layout. The clipboard is put back afterwards.
-    private func fixLayout(in given: NSRunningApplication? = nil, done: ((String?) -> Void)? = nil) {
-        guard !fixingLayout, Paster.ensureAccessibility(prompt: false) else { NSSound.beep(); done?(nil); return }
+    private func fixLayout(in given: NSRunningApplication? = nil, orSwitch: Bool = false, done: ((String?) -> Void)? = nil) {
+        func nothing() {
+            if orSwitch { switchToNextLayout() } else { NSSound.beep() }
+            done?(nil)
+        }
+        guard !fixingLayout, Paster.ensureAccessibility(prompt: false) else { nothing(); return }
         let target = given ?? NSWorkspace.shared.frontmostApplication
         // Remote desktop ignores synthetic modifiers, so the copy/paste round trip can't work there.
-        guard !Paster.isRemoteDesktop(target) else { NSSound.beep(); done?(nil); return }
+        guard !Paster.isRemoteDesktop(target) else { nothing(); return }
         // First try Accessibility: no clipboard, no key presses, works in native apps.
         if let pid = target?.processIdentifier, var field = FocusedText(pid: pid),
-           let text = field.takeSelectionOrLastWord(), !text.isEmpty {
+           let (text, selected) = field.takeSelectionOrLastWord(), !text.isEmpty {
             let layouts = KeyboardLayout.enabled()
-            guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else { NSSound.beep(); done?(nil); return }
-            let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
+            guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else { nothing(); return }
+            // A single word you selected yourself is always fixed; otherwise remembered words stay.
+            let explicit = selected && !text.contains(where: \.isWhitespace)
+            let fixed = LayoutFix.convert(text, from: way.from, to: way.to, memory: layoutMemory, explicit: explicit)
+            guard fixed != text else { nothing(); return }
             if field.replaceSelection(with: fixed) {
+                layoutMemory.noteFix(original: text, fixed: fixed)
                 if let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
                 done?(fixed)
                 return
@@ -393,9 +415,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard NSPasteboard.general.changeCount != before,
                       let text = NSPasteboard.general.string(forType: .string), !text.isEmpty,
                       let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else {
-                    NSSound.beep(); finish(nil); return
+                    if orSwitch { self.switchToNextLayout() } else { NSSound.beep() }
+                    finish(nil); return
                 }
-                let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
+                let fixed = LayoutFix.convert(text, from: way.from, to: way.to, memory: self.layoutMemory,
+                                              explicit: !text.contains(where: \.isWhitespace))
+                self.layoutMemory.noteFix(original: text, fixed: fixed)
                 Paster.write(fixed)
                 self.monitor.ignoreCurrentChange()
                 Paster.sendCommandV(to: target)
@@ -404,6 +429,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 finish(fixed)
             }
         }
+    }
+
+    /// Switches to the next keyboard layout in the menu bar list, like pressing ⌃Space.
+    private func switchToNextLayout() {
+        let layouts = KeyboardLayout.enabled()
+        guard layouts.count > 1 else { return }
+        let current = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue()
+        let currentID = current.flatMap { TISGetInputSourceProperty($0, kTISPropertyInputSourceID) }
+            .map { Unmanaged<CFString>.fromOpaque($0).takeUnretainedValue() as String }
+        let i = layouts.firstIndex { $0.0.id == currentID } ?? -1
+        TISSelectInputSource(layouts[(i + 1) % layouts.count].1)
+    }
+
+    // MARK: Double right Shift
+
+    private var shiftDetector = DoubleShiftDetector()
+    private var shiftMonitor: Any?
+
+    /// Apps that use Shift-Shift themselves (JetBrains Search Everywhere).
+    private static let shiftShiftApps = ["com.jetbrains.", "com.google.android.studio"]
+
+    private func startDoubleShift() {
+        shiftMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown]) { [weak self] e in
+            self?.handleShift(e)
+        }
+    }
+
+    private func handleShift(_ e: NSEvent) {
+        guard e.type == .flagsChanged, e.keyCode == UInt16(kVK_RightShift) else { shiftDetector.other(); return }
+        let others = e.modifierFlags.intersection([.command, .option, .control, .function])
+        guard others.isEmpty else { shiftDetector.other(); return }
+        guard shiftDetector.shift(down: e.modifierFlags.contains(.shift), at: e.timestamp) else { return }
+        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        // In a password field macOS turns on Secure Input; don't read or retype anything there.
+        guard Settings.shared.doubleShift, !IsSecureEventInputEnabled(),
+              !Self.shiftShiftApps.contains(where: front.hasPrefix) else { return }
+        fixLayout(orSwitch: true)
     }
 
     private func waitForPasteboard(after count: Int, until deadline: Date, _ then: @escaping () -> Void) {

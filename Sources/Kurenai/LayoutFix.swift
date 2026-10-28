@@ -113,15 +113,17 @@ struct FocusedText {
     }
 
     /// The selection, or with nothing selected the word just before the cursor (like Punto Switcher).
-    mutating func takeSelectionOrLastWord() -> String? {
-        if let sel = string(kAXSelectedTextAttribute), !sel.isEmpty { return sel }
+    /// `selected` tells whether you picked the text yourself.
+    mutating func takeSelectionOrLastWord() -> (text: String, selected: Bool)? {
+        if let sel = string(kAXSelectedTextAttribute), !sel.isEmpty { return (sel, true) }
         guard let all = string(kAXValueAttribute), let r = range, r.length == 0, r.location > 0 else { return nil }
         let utf16 = Array(all.utf16)
         guard r.location <= utf16.count else { return nil }
         var start = r.location
         while start > 0, let ch = Unicode.Scalar(utf16[start - 1]), !CharacterSet.whitespacesAndNewlines.contains(ch) { start -= 1 }
-        guard start < r.location, select(CFRange(location: start, length: r.location - start)) else { return nil }
-        return string(kAXSelectedTextAttribute)
+        guard start < r.location, select(CFRange(location: start, length: r.location - start)),
+              let word = string(kAXSelectedTextAttribute) else { return nil }
+        return (word, false)
     }
 
     /// Replaces the selection. Returns false when the app ignores the write.
@@ -132,4 +134,86 @@ struct FocusedText {
         if let before, let after = string(kAXValueAttribute) { return after != before || before.contains(text) }
         return true
     }
+}
+
+/// Remembers words you keep changing back. Fix "ytn" → "нет", then fix "нет" → "ytn" again within a minute,
+/// and that counts as "this word was right as typed". After three such reverts the word is left alone when
+/// a phrase or the last word is fixed. Selecting exactly that word and fixing it still works.
+final class LayoutMemory {
+    static let threshold = 3
+    private static let revertWindow: TimeInterval = 60
+    private static let maxWords = 1000
+
+    private(set) var reverts: [String: Int]
+    private var last: (original: String, fixed: String, at: Date)?
+    private let save: ([String: Int]) -> Void
+
+    init(reverts: [String: Int] = [:], save: @escaping ([String: Int]) -> Void = { _ in }) {
+        self.reverts = reverts
+        self.save = save
+    }
+
+    static func key(_ word: String) -> String {
+        word.lowercased().trimmingCharacters(in: .punctuationCharacters.union(.whitespacesAndNewlines))
+    }
+
+    func isKept(_ word: String) -> Bool { (reverts[Self.key(word)] ?? 0) >= Self.threshold }
+
+    /// Call after every fix. Detects a revert of the previous fix and counts the words that were right before.
+    func noteFix(original: String, fixed: String, at now: Date = Date()) {
+        if let last, now.timeIntervalSince(last.at) < Self.revertWindow,
+           original == last.fixed, fixed == last.original {
+            for word in last.original.split(whereSeparator: \.isWhitespace) {
+                let k = Self.key(String(word))
+                if !k.isEmpty { reverts[k, default: 0] += 1 }
+            }
+            if reverts.count > Self.maxWords {
+                // Drop the words that were reverted least, they matter least.
+                reverts = Dictionary(uniqueKeysWithValues: reverts.sorted { $0.value > $1.value }.prefix(Self.maxWords).map { ($0.key, $0.value) })
+            }
+            save(reverts)
+            self.last = nil
+            return
+        }
+        last = (original, fixed, now)
+    }
+}
+
+extension LayoutFix {
+    /// Converts word by word, leaving remembered words as typed. With `explicit` (the whole selection is one
+    /// word you picked yourself) memory is ignored.
+    static func convert(_ text: String, from: KeyboardLayout, to: KeyboardLayout, memory: LayoutMemory?, explicit: Bool) -> String {
+        guard let memory, !explicit else { return convert(text, from: from, to: to) }
+        var out = "", word = ""
+        func flush() { out += memory.isKept(word) ? word : convert(word, from: from, to: to); word = "" }
+        for ch in text {
+            if ch.isWhitespace { flush(); out.append(ch) } else { word.append(ch) }
+        }
+        flush()
+        return out
+    }
+}
+
+/// Spots two quick taps of Shift on their own (no other key, no other modifier, no long hold).
+struct DoubleShiftDetector {
+    var window: TimeInterval = 0.4      // between the two taps
+    var maxHold: TimeInterval = 0.3     // a tap, not holding Shift to type capitals
+    private var downAt: TimeInterval?
+    private var lastTapAt: TimeInterval?
+    private var spoiled = false
+
+    /// Shift went down or up, with no other modifier held.
+    mutating func shift(down: Bool, at t: TimeInterval) -> Bool {
+        if down { downAt = t; spoiled = false; return false }
+        guard let d = downAt, !spoiled, t - d <= maxHold else { reset(); return false }
+        downAt = nil
+        if let prev = lastTapAt, t - prev <= window { lastTapAt = nil; return true }
+        lastTapAt = t
+        return false
+    }
+
+    /// Any other key or modifier cancels: Shift+letter is typing, not a double tap.
+    mutating func other() { spoiled = true; lastTapAt = nil }
+
+    private mutating func reset() { downAt = nil; lastTapAt = nil; spoiled = false }
 }

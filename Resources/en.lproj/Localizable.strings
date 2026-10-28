@@ -126,3 +126,6 @@
 "Скопировано. Нажмите Ctrl+V" = "Copied. Press Ctrl+V";
 "Строка %d из %d в буфере. Нажмите Ctrl+V" = "Item %d of %d copied. Press Ctrl+V";
 "Нажмите Ctrl+C, строки попадут в очередь" = "Press Ctrl+C, the lines go into the queue";
+"Двойной правый Shift меняет раскладку" = "Double right Shift fixes the layout";
+"Раскладка" = "Keyboard layout";
+"Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если исправлять нечего, просто сменится язык. Слова, которые вы трижды возвращали обратно, Kurenai запоминает и больше не трогает." = "Tap the right Shift twice: the selection or the last word is retyped in the other layout, and if there's nothing to fix, the input language just switches. Words you changed back three times are remembered and left alone.";

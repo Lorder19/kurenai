@@ -98,11 +98,16 @@ final class Settings: ObservableObject {
     @Published var clearOnQuit: Bool {
         didSet { UserDefaults.standard.set(clearOnQuit, forKey: "clearOnQuit") }
     }
+    /// Tap the right Shift twice: fix the selection or the last word, or just switch the layout.
+    @Published var doubleShift: Bool {
+        didSet { UserDefaults.standard.set(doubleShift, forKey: "doubleShift") }
+    }
 
     private init() {
         let d = UserDefaults.standard
         encryptStore = d.object(forKey: "encryptStore") == nil ? true : d.bool(forKey: "encryptStore")
         clearOnQuit = d.bool(forKey: "clearOnQuit")
+        doubleShift = d.object(forKey: "doubleShift") == nil ? true : d.bool(forKey: "doubleShift")
         let saved = (d.data(forKey: "shortcuts")).flatMap { try? JSONDecoder().decode([ShortcutAction: Shortcut].self, from: $0) } ?? [:]
         shortcuts = Dictionary(uniqueKeysWithValues: ShortcutAction.allCases.map { ($0, saved[$0] ?? $0.defaultShortcut) })
         let limit = d.integer(forKey: "historyLimit")
@@ -173,6 +178,15 @@ struct SettingsView: View {
                 Picker(L("Хранить в истории"), selection: $settings.historyLimit) {
                     ForEach(Settings.historyLimits, id: \.self) { Text(String(format: L("%d записей"), $0)).tag($0) }
                 }
+            }
+
+            Section {
+                Toggle(L("Двойной правый Shift меняет раскладку"), isOn: $settings.doubleShift)
+            } header: {
+                Text(L("Раскладка"))
+            } footer: {
+                Text(L("Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если исправлять нечего, просто сменится язык. Слова, которые вы трижды возвращали обратно, Kurenai запоминает и больше не трогает."))
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
