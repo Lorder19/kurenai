@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import Carbon
 
@@ -8,11 +9,14 @@ struct KeyboardLayout {
     struct Key: Hashable { let code: UInt16; let mods: Int }
 
     let id: String
+    /// The language the layout types, for the spelling dictionary ("ru", "en", "uk"…).
+    let language: String
     let charToKey: [Character: Key]
     let keyToChar: [Key: Character]
 
-    init(id: String, keyToChar: [Key: Character]) {
+    init(id: String, language: String = "", keyToChar: [Key: Character]) {
         self.id = id
+        self.language = language
         self.keyToChar = keyToChar
         var reverse: [Character: Key] = [:]
         // When several keys give the same character, prefer the one with the fewest modifiers.
@@ -48,7 +52,9 @@ struct KeyboardLayout {
             }
         }
         guard map.count > 20 else { return nil }
-        self.init(id: id, keyToChar: map)
+        let langs = TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages)
+            .map { Unmanaged<CFArray>.fromOpaque($0).takeUnretainedValue() as? [String] ?? [] } ?? []
+        self.init(id: id, language: langs.first ?? "", keyToChar: map)
     }
 
     /// The numeric keypad types the same digits in every layout, so it says nothing about which one was used.
@@ -76,14 +82,18 @@ enum LayoutFix {
     }
 
     /// Picks which layout the text was typed in and which one it was meant for.
-    static func direction(for text: String, among layouts: [KeyboardLayout]) -> (from: KeyboardLayout, to: KeyboardLayout)? {
+    static func direction(for text: String, among layouts: [KeyboardLayout], words: WordList? = nil) -> (from: KeyboardLayout, to: KeyboardLayout)? {
         guard layouts.count >= 2 else { return nil }
         let scored = layouts.map { l in (l, score(text, in: l, against: layouts.filter { $0.id != l.id })) }
         guard let from = scored.max(by: { $0.1 < $1.1 }), from.1 > 0 else { return nil }
         // With more than two layouts, the target is the one the converted text fits best.
         let candidates = layouts.filter { $0.id != from.0.id }
-        let to = candidates.max { convert(text, from: from.0, to: $0).filter(\.isLetter).count
-                                 < convert(text, from: from.0, to: $1).filter(\.isLetter).count }!
+        func fit(_ l: KeyboardLayout) -> Int {
+            let converted = convert(text, from: from.0, to: l)
+            let real = words.map { w in converted.split(whereSeparator: { !$0.isLetter }).filter { w.isWord(String($0), language: l.language) }.count } ?? 0
+            return real * 1000 + converted.filter(\.isLetter).count
+        }
+        let to = candidates.max { fit($0) < fit($1) }!
         return (from.0, to)
     }
 
@@ -229,4 +239,55 @@ struct DoubleShiftDetector {
     mutating func other() { spoiled = true; lastTapAt = nil }
 
     private mutating func reset() { downAt = nil; lastTapAt = nil; spoiled = false }
+}
+
+/// Answers "is this a real word in that language". The app uses the spelling dictionaries built into macOS
+/// (offline, every language the system has); tests pass a fixed list.
+protocol WordList {
+    func isWord(_ word: String, language: String) -> Bool
+}
+
+struct SystemDictionary: WordList {
+    func isWord(_ word: String, language: String) -> Bool {
+        guard !language.isEmpty, word.count > 1 else { return false }
+        let checker = NSSpellChecker.shared
+        let lang = checker.availableLanguages.first { $0 == language || $0.hasPrefix(language + "_") } ?? ""
+        guard !lang.isEmpty else { return false }
+        // Proper names and brands are capitalised in the dictionary, so try the word as typed and lowercased.
+        for w in Set([word, word.lowercased(), word.prefix(1).uppercased() + word.dropFirst().lowercased()]) {
+            let miss = checker.checkSpelling(of: w, startingAt: 0, language: lang, wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+            if miss.location == NSNotFound { return true }
+        }
+        return false
+    }
+}
+
+extension LayoutFix {
+    /// Word by word: a word changes only if it isn't a real word as typed but becomes one in the other layout,
+    /// or if no dictionary knows either version (gibberish both ways is still converted, like Punto does).
+    /// Remembered words stay. `explicit` (one word you selected yourself) always converts.
+    static func smartConvert(_ text: String, from: KeyboardLayout, to: KeyboardLayout,
+                             words: WordList?, memory: LayoutMemory?, explicit: Bool) -> String {
+        if explicit { return convert(text, from: from, to: to) }
+        var out = "", word = ""
+        func flush() {
+            defer { word = "" }
+            guard !word.isEmpty else { return }
+            let letters = word.trimmingCharacters(in: .punctuationCharacters.union(.symbols))
+            let converted = convert(word, from: from, to: to)
+            if memory?.isKept(word) == true { out += word; return }
+            if let words, !letters.isEmpty {
+                let typedIsWord = words.isWord(letters, language: from.language)
+                let convertedLetters = converted.trimmingCharacters(in: .punctuationCharacters.union(.symbols))
+                let convertedIsWord = words.isWord(convertedLetters, language: to.language)
+                if typedIsWord && !convertedIsWord { out += word; return }
+            }
+            out += converted
+        }
+        for ch in text {
+            if ch.isWhitespace { flush(); out.append(ch) } else { word.append(ch) }
+        }
+        flush()
+        return out
+    }
 }

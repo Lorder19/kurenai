@@ -353,6 +353,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Layout fix
 
     private var fixingLayout = false
+    /// Off for the debug probe: it must not change the input language of whoever is using the Mac.
+    private var switchesLayout = true
+    private let dictionary = SystemDictionary()
 
     /// Words you keep changing back, kept next to the history (encrypted like it).
     private lazy var layoutMemory: LayoutMemory = {
@@ -382,14 +385,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let pid = target?.processIdentifier, var field = FocusedText(pid: pid),
            let (text, selected) = field.takeSelectionOrLastWord(), !text.isEmpty {
             let layouts = KeyboardLayout.enabled()
-            guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else { nothing(); return }
-            // A single word you selected yourself is always fixed; otherwise remembered words stay.
+            guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0), words: dictionary) else { nothing(); return }
+            // A single word you selected yourself is always fixed; otherwise real words and remembered ones stay.
             let explicit = selected && !text.contains(where: \.isWhitespace)
-            let fixed = LayoutFix.convert(text, from: way.from, to: way.to, memory: layoutMemory, explicit: explicit)
+            let fixed = LayoutFix.smartConvert(text, from: way.from, to: way.to, words: dictionary, memory: layoutMemory, explicit: explicit)
             guard fixed != text else { nothing(); return }
             if field.replaceSelection(with: fixed) {
                 layoutMemory.noteFix(original: text, fixed: fixed)
-                if let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
+                if switchesLayout, let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
                 done?(fixed)
                 return
             }
@@ -413,18 +416,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let layouts = KeyboardLayout.enabled()
                 guard NSPasteboard.general.changeCount != before,
                       let text = NSPasteboard.general.string(forType: .string), !text.isEmpty,
-                      let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else {
+                      let way = LayoutFix.direction(for: text, among: layouts.map(\.0), words: self.dictionary) else {
                     if orSwitch { self.switchToNextLayout() } else { NSSound.beep() }
                     finish(nil); return
                 }
-                let fixed = LayoutFix.convert(text, from: way.from, to: way.to, memory: self.layoutMemory,
-                                              explicit: !text.contains(where: \.isWhitespace))
+                let fixed = LayoutFix.smartConvert(text, from: way.from, to: way.to, words: self.dictionary,
+                                                   memory: self.layoutMemory, explicit: !text.contains(where: \.isWhitespace))
+                guard fixed != text else {
+                    if orSwitch { self.switchToNextLayout() } else { NSSound.beep() }
+                    finish(nil); return
+                }
                 self.layoutMemory.noteFix(original: text, fixed: fixed)
                 Paster.write(fixed)
                 self.monitor.ignoreCurrentChange()
                 Paster.sendCommandV(to: target)
                 // Keep typing in the layout the text was meant for.
-                if let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
+                if switchesLayout, let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
                 finish(fixed)
             }
         }
@@ -479,6 +486,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// prints the result and quits. Lets the feature be tested on a background TextEdit window.
     private func runLayoutFixProbe(pid: Int32) {
         guard let app = NSRunningApplication(processIdentifier: pid) else { print("no app"); exit(2) }
+        switchesLayout = false
         // `-KurenaiFixLayoutSelect start,length` selects a range first; `-KurenaiFixLayoutSelect caret,N` puts the cursor at N.
         if let spec = Demo.argument("KurenaiFixLayoutSelect"), let field = FocusedText(pid: pid) {
             let parts = spec.split(separator: ",")

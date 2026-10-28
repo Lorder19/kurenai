@@ -223,3 +223,51 @@ final class LayoutPairsTests: XCTestCase {
         }
     }
 }
+
+final class DictionaryTests: XCTestCase {
+    lazy var en = KeyboardLayout.installed("com.apple.keylayout.ABC")!
+    lazy var ru = KeyboardLayout.installed("com.apple.keylayout.RussianWin")!
+    let dict = SystemDictionary()
+
+    func testLayoutsKnowTheirLanguage() {
+        XCTAssertEqual(en.language, "en")
+        XCTAssertEqual(ru.language, "ru")
+    }
+
+    func testSystemDictionary() {
+        XCTAssertTrue(dict.isWord("привет", language: "ru"))
+        XCTAssertTrue(dict.isWord("hello", language: "en"))
+        XCTAssertTrue(dict.isWord("London", language: "en"))
+        XCTAssertFalse(dict.isWord("ghbdtn", language: "en"))
+        XCTAssertFalse(dict.isWord("руддщ", language: "ru"))
+    }
+
+    func testRealWordsInAPhraseStay() {
+        // "hello" typed right, "vbh" typed in the wrong layout: only the second one changes.
+        XCTAssertEqual(LayoutFix.smartConvert("hello vbh", from: en, to: ru, words: dict, memory: nil, explicit: false), "hello мир")
+        XCTAssertEqual(LayoutFix.smartConvert("Ghbdtn? rfr ltkf&", from: en, to: ru, words: dict, memory: nil, explicit: false), "Привет, как дела?")
+        XCTAssertEqual(LayoutFix.smartConvert("руддщ цщкдв", from: ru, to: en, words: dict, memory: nil, explicit: false), "hello world")
+    }
+
+    func testCorrectLastWordIsLeftAlone() {
+        // Double Shift after a word that is already right: nothing to fix (the app then just switches the layout).
+        XCTAssertEqual(LayoutFix.smartConvert("hello", from: en, to: ru, words: dict, memory: nil, explicit: false), "hello")
+        XCTAssertEqual(LayoutFix.smartConvert("привет", from: ru, to: en, words: dict, memory: nil, explicit: false), "привет")
+    }
+
+    func testSelectedWordAlwaysConverts() {
+        XCTAssertEqual(LayoutFix.smartConvert("hello", from: en, to: ru, words: dict, memory: nil, explicit: true), "руддщ")
+    }
+
+    func testGibberishBothWaysStillConverts() {
+        XCTAssertEqual(LayoutFix.smartConvert("ghbdtnbr", from: en, to: ru, words: dict, memory: nil, explicit: false), "приветик")
+    }
+
+    func testThirdLayoutPickedByDictionary() throws {
+        let ua = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.Ukrainian-PC"))
+        XCTAssertEqual(ua.language, "uk")
+        // "ghbdsn" is "привіт" in Ukrainian and "привыт" (not a word) in Russian.
+        let way = try XCTUnwrap(LayoutFix.direction(for: "ghbdsn", among: [en, ru, ua], words: dict))
+        XCTAssertEqual(way.to.id, ua.id)
+    }
+}
