@@ -161,7 +161,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .queue: toggleQueue()
         case .clearQueue: queue.clear()
         case .copyLines: copyAsLines()
-        case .fixLayout: fixLayout()
         }
     }
 
@@ -368,7 +367,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }()
 
-    /// ⌥⌘K: copies the selection, retypes it in the other keyboard layout ("ghbdtn" → "привет"), pastes it
+    /// Double right Shift: copies the selection, retypes it in the other keyboard layout ("ghbdtn" → "привет"), pastes it
     /// over the selection and switches the layout. The clipboard is put back afterwards.
     private func fixLayout(in given: NSRunningApplication? = nil, orSwitch: Bool = false, done: ((String?) -> Void)? = nil) {
         func nothing() {
@@ -405,7 +404,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 done?(result)
             }
         }
-        whenKeysReleased(of: .fixLayout) { [weak self] in
+        whenKeysReleased { [weak self] in
             guard let self else { return }
             let before = NSPasteboard.general.changeCount
             Paster.sendCommandC(to: given)

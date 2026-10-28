@@ -42,12 +42,12 @@ struct Shortcut: Codable, Equatable {
         kVK_LeftArrow: "←", kVK_RightArrow: "→", kVK_UpArrow: "↑", kVK_DownArrow: "↓",
         kVK_ANSI_Semicolon: ";", kVK_ANSI_Quote: "'", kVK_ANSI_Comma: ",", kVK_ANSI_Period: ".",
         kVK_ANSI_Slash: "/", kVK_ANSI_LeftBracket: "[", kVK_ANSI_RightBracket: "]",
-        kVK_ANSI_I: "I", kVK_ANSI_X: "X", kVK_ANSI_C: "C", kVK_ANSI_V: "V", kVK_ANSI_K: "K",
+        kVK_ANSI_I: "I", kVK_ANSI_X: "X", kVK_ANSI_C: "C", kVK_ANSI_V: "V",
     ]
 }
 
 enum ShortcutAction: String, CaseIterable, Codable {
-    case history, list, queue, clearQueue, copyLines, fixLayout
+    case history, list, queue, clearQueue, copyLines
 
     var title: String {
         switch self {
@@ -56,7 +56,6 @@ enum ShortcutAction: String, CaseIterable, Codable {
         case .queue: L("Paste Queue")
         case .clearQueue: L("Очистить очередь")
         case .copyLines: L("Копировать построчно в очередь")
-        case .fixLayout: L("Исправить раскладку выделенного")
         }
     }
 
@@ -67,7 +66,6 @@ enum ShortcutAction: String, CaseIterable, Codable {
         case .queue: Shortcut(keyCode: kVK_ANSI_Quote, modifiers: cmdKey, label: "⌘'")
         case .clearQueue: Shortcut(keyCode: kVK_ANSI_X, modifiers: cmdKey | shiftKey, label: "⇧⌘X")
         case .copyLines: Shortcut(keyCode: kVK_ANSI_C, modifiers: cmdKey | shiftKey, label: "⇧⌘C")
-        case .fixLayout: Shortcut(keyCode: kVK_ANSI_K, modifiers: cmdKey | optionKey, label: "⌥⌘K")
         }
     }
 }
