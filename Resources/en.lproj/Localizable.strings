@@ -26,6 +26,7 @@
 "Картинка %d×%d" = "Image %d×%d";
 "Нажмите, чтобы эта строка вставилась следующей" = "Click to paste this item next";
 "Копировать построчно в очередь" = "Copy lines into queue";
+"Исправить раскладку выделенного" = "Fix keyboard layout of selection";
 "Копируй, и всё встанет в очередь" = "Copy anything and it lands in the queue";
 "Мой список" = "My List";
 "Нажмите сочетание…" = "Press shortcut…";

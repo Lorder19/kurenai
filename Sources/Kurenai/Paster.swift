@@ -25,7 +25,25 @@ enum Paster {
     /// With a target, ⌘V is delivered straight to that process: right after a Kurenai panel closes, the
     /// WindowServer still routes keys to Kurenai, which has no window to handle them and beeps.
     static func sendCommandV(to target: NSRunningApplication? = nil) { sendCommand(9, to: target) }
-    static func sendCommandC() { sendCommand(8, to: nil) }
+    static func sendCommandC(to target: NSRunningApplication? = nil) { sendCommand(8, to: target) }
+
+    /// Everything on the clipboard, every type of every item, so it can be put back after a temporary write.
+    static func snapshot() -> [[NSPasteboard.PasteboardType: Data]] {
+        (NSPasteboard.general.pasteboardItems ?? []).map { item in
+            Dictionary(item.types.compactMap { t in item.data(forType: t).map { (t, $0) } }, uniquingKeysWith: { a, _ in a })
+        }
+    }
+
+    static func restore(_ snapshot: [[NSPasteboard.PasteboardType: Data]]) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        guard !snapshot.isEmpty else { return }
+        pb.writeObjects(snapshot.map { types in
+            let item = NSPasteboardItem()
+            for (type, data) in types { item.setData(data, forType: type) }
+            return item
+        })
+    }
 
     /// Remote desktop clients (Windows App and friends) forward keys to a Windows machine, where paste is
     /// Ctrl+V and Cmd often arrives as the Windows key. They also sync the clipboard to the remote side a

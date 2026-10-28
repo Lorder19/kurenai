@@ -20,6 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if Demo.isOn { startDemo(); return }
+        let probe = UserDefaults.standard.integer(forKey: "KurenaiFixLayoutPid")
+        if probe > 0 { runLayoutFixProbe(pid: Int32(probe)); return }
         if Self.anotherInstanceKeepsRunning() { NSApp.terminate(nil); return }
         if AppMover.renameLegacyBundleIfNeeded() { return }
         if AppMover.offerMoveIfNeeded() { return }
@@ -156,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .queue: toggleQueue()
         case .clearQueue: queue.clear()
         case .copyLines: copyAsLines()
+        case .fixLayout: fixLayout()
         }
     }
 
@@ -285,6 +288,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Copy
 
     private func handleCopy(_ text: String) {
+        // The selection copied for a layout fix is ours, not something the user copied.
+        if fixingLayout { return }
         store.record(text)
         if awaitingSplit {
             awaitingSplit = false
@@ -334,13 +339,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var splitToken = 0
 
-    private func whenKeysReleased(waited: Double = 0, _ action: @escaping () -> Void) {
-        let held = CGEventSource.keyState(.hidSystemState, key: CGKeyCode(kVK_Shift))
-            || CGEventSource.keyState(.hidSystemState, key: CGKeyCode(kVK_RightShift))
-            || CGEventSource.keyState(.hidSystemState, key: CGKeyCode(Settings.shared.shortcut(.copyLines).keyCode))
-        if !held || waited >= 1.5 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.03, execute: action); return }
+    private func whenKeysReleased(of action: ShortcutAction = .copyLines, waited: Double = 0, _ run: @escaping () -> Void) {
+        let keys = [kVK_Shift, kVK_RightShift, kVK_Option, kVK_RightOption, Settings.shared.shortcut(action).keyCode]
+        let held = keys.contains { CGEventSource.keyState(.hidSystemState, key: CGKeyCode($0)) }
+        if !held || waited >= 1.5 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.03, execute: run); return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.015) { [weak self] in
-            self?.whenKeysReleased(waited: waited + 0.015, action)
+            self?.whenKeysReleased(of: action, waited: waited + 0.015, run)
+        }
+    }
+
+    // MARK: Layout fix
+
+    private var fixingLayout = false
+
+    /// ⌥⌘K: copies the selection, retypes it in the other keyboard layout ("ghbdtn" → "привет"), pastes it
+    /// over the selection and switches the layout. The clipboard is put back afterwards.
+    private func fixLayout(in given: NSRunningApplication? = nil, done: ((String?) -> Void)? = nil) {
+        guard !fixingLayout, Paster.ensureAccessibility(prompt: false) else { NSSound.beep(); done?(nil); return }
+        let target = given ?? NSWorkspace.shared.frontmostApplication
+        // Remote desktop ignores synthetic modifiers, so the copy/paste round trip can't work there.
+        guard !Paster.isRemoteDesktop(target) else { NSSound.beep(); done?(nil); return }
+        // First try Accessibility: no clipboard, no key presses, works in native apps.
+        if let pid = target?.processIdentifier, var field = FocusedText(pid: pid),
+           let text = field.takeSelectionOrLastWord(), !text.isEmpty {
+            let layouts = KeyboardLayout.enabled()
+            guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else { NSSound.beep(); done?(nil); return }
+            let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
+            if field.replaceSelection(with: fixed) {
+                if let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
+                done?(fixed)
+                return
+            }
+        }
+        let saved = Paster.snapshot()
+        fixingLayout = true
+        func finish(_ result: String?) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                Paster.restore(saved)
+                self?.monitor.ignoreCurrentChange()
+                self?.fixingLayout = false
+                done?(result)
+            }
+        }
+        whenKeysReleased(of: .fixLayout) { [weak self] in
+            guard let self else { return }
+            let before = NSPasteboard.general.changeCount
+            Paster.sendCommandC(to: given)
+            self.waitForPasteboard(after: before, until: Date().addingTimeInterval(0.8)) { [weak self] in
+                guard let self else { return }
+                let layouts = KeyboardLayout.enabled()
+                guard NSPasteboard.general.changeCount != before,
+                      let text = NSPasteboard.general.string(forType: .string), !text.isEmpty,
+                      let way = LayoutFix.direction(for: text, among: layouts.map(\.0)) else {
+                    NSSound.beep(); finish(nil); return
+                }
+                let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
+                Paster.write(fixed)
+                self.monitor.ignoreCurrentChange()
+                Paster.sendCommandV(to: target)
+                // Keep typing in the layout the text was meant for.
+                if let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
+                finish(fixed)
+            }
+        }
+    }
+
+    private func waitForPasteboard(after count: Int, until deadline: Date, _ then: @escaping () -> Void) {
+        if NSPasteboard.general.changeCount != count || Date() > deadline { then(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
+            self?.waitForPasteboard(after: count, until: deadline, then)
+        }
+    }
+
+    /// `Kurenai -KurenaiFixLayoutPid <pid>`: runs one layout fix against that app without focusing it,
+    /// prints the result and quits. Lets the feature be tested on a background TextEdit window.
+    private func runLayoutFixProbe(pid: Int32) {
+        guard let app = NSRunningApplication(processIdentifier: pid) else { print("no app"); exit(2) }
+        // `-KurenaiFixLayoutSelect start,length` selects a range first; `-KurenaiFixLayoutSelect caret,N` puts the cursor at N.
+        if let spec = UserDefaults.standard.string(forKey: "KurenaiFixLayoutSelect"), let field = FocusedText(pid: pid) {
+            let parts = spec.split(separator: ",")
+            let caret = parts.first == "caret", n = parts.compactMap { Int($0) }
+            _ = field.select(caret ? CFRange(location: n.last ?? 0, length: 0) : CFRange(location: n.first ?? 0, length: n.last ?? 0))
+        }
+        fixLayout(in: app) { result in
+            print("FIXED:", result ?? "<nothing>")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { exit(result == nil ? 1 : 0) }
         }
     }
 
