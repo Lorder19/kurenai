@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         registerShortcuts()
         startDoubleShift()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.offerDictionaries() }
         Settings.shared.onEncryptionChange = { [weak self] in self?.queue.rewrite() }
         Settings.shared.onShortcutsChange = { [weak self] in self?.registerShortcuts() }
         Settings.shared.onRecording = { [weak self] on in self?.hotKeys.forEach { $0.setEnabled(!on) } }
@@ -386,9 +387,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
            let (text, selected) = field.takeSelectionOrLastWord(), !text.isEmpty {
             let layouts = KeyboardLayout.enabled()
             guard let way = LayoutFix.direction(for: text, among: layouts.map(\.0), words: dictionary) else { nothing(); return }
-            // A single word you selected yourself is always fixed; otherwise real words and remembered ones stay.
-            let explicit = selected && !text.contains(where: \.isWhitespace)
-            let fixed = LayoutFix.smartConvert(text, from: way.from, to: way.to, words: dictionary, memory: layoutMemory, explicit: explicit)
+            // Double Shift is a manual command: every word changes, jargon and names included.
+            _ = selected
+            let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
             guard fixed != text else { nothing(); return }
             if field.replaceSelection(with: fixed) {
                 layoutMemory.noteFix(original: text, fixed: fixed)
@@ -420,8 +421,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     if orSwitch { self.switchToNextLayout() } else { NSSound.beep() }
                     finish(nil); return
                 }
-                let fixed = LayoutFix.smartConvert(text, from: way.from, to: way.to, words: self.dictionary,
-                                                   memory: self.layoutMemory, explicit: !text.contains(where: \.isWhitespace))
+                let fixed = LayoutFix.convert(text, from: way.from, to: way.to)
                 guard fixed != text else {
                     if orSwitch { self.switchToNextLayout() } else { NSSound.beep() }
                     finish(nil); return
@@ -446,6 +446,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .map { Unmanaged<CFString>.fromOpaque($0).takeUnretainedValue() as String }
         let i = layouts.firstIndex { $0.0.id == currentID } ?? -1
         TISSelectInputSource(layouts[(i + 1) % layouts.count].1)
+    }
+
+    /// Once: if a layout's language has no spelling dictionary on this Mac, offer to download it.
+    /// Later it's in Settings → Keyboard layout.
+    private func offerDictionaries() {
+        guard !UserDefaults.standard.bool(forKey: "askedDictionaries") else { return }
+        let dicts = Dictionaries.shared
+        dicts.refresh()
+        guard !dicts.missing.isEmpty else { return }
+        UserDefaults.standard.set(true, forKey: "askedDictionaries")
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = String(format: L("Скачать словарь: %@?"), dicts.missing.map(\.name).joined(separator: ", "))
+        alert.informativeText = L("Для этих раскладок в macOS нет словаря. Kurenai может скачать бесплатный словарь LibreOffice с GitHub в ~/Library/Spelling, его увидят и другие программы. Двойной Shift работает и без него.")
+        alert.addButton(withTitle: L("Скачать"))
+        alert.addButton(withTitle: L("Не сейчас"))
+        if alert.runModal() == .alertFirstButtonReturn { dicts.downloadMissing() }
     }
 
     // MARK: Double right Shift

@@ -180,10 +180,11 @@ struct SettingsView: View {
 
             Section {
                 Toggle(L("Двойной правый Shift меняет раскладку"), isOn: $settings.doubleShift)
+                DictionaryRow()
             } header: {
                 Text(L("Раскладка"))
             } footer: {
-                Text(L("Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если исправлять нечего, просто сменится язык. Слова, которые вы трижды возвращали обратно, Kurenai запоминает и больше не трогает."))
+                Text(L("Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если текста нет, просто сменится язык. Словари нужны, чтобы при трёх и больше раскладках выбрать правильную."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -290,4 +291,35 @@ private struct ShortcutRecorder: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
     final class Coordinator { var monitor: Any? }
+}
+
+/// Which layout languages have a spelling dictionary, and a button to fetch the missing ones.
+struct DictionaryRow: View {
+    @ObservedObject private var dicts = Dictionaries.shared
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("Словари"))
+                Text(summary).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if dicts.busy {
+                ProgressView().controlSize(.small)
+            } else if !dicts.missing.isEmpty {
+                Button(L("Скачать")) { dicts.downloadMissing() }
+            }
+        }
+        .onAppear { dicts.refresh() }
+    }
+
+    private var summary: String {
+        var parts: [String] = []
+        if !dicts.installed.isEmpty { parts.append("✓ " + dicts.installed.map(\.name).joined(separator: ", ")) }
+        if !dicts.missing.isEmpty {
+            parts.append(String(format: L("нет словаря: %@ (бесплатно, с GitHub LibreOffice)"), dicts.missing.map(\.name).joined(separator: ", ")))
+        }
+        if let failed = dicts.lastError { parts.append(String(format: L("не удалось скачать: %@"), failed)) }
+        return parts.isEmpty ? L("Раскладки не найдены") : parts.joined(separator: " · ")
+    }
 }

@@ -271,3 +271,39 @@ final class DictionaryTests: XCTestCase {
         XCTAssertEqual(way.to.id, ua.id)
     }
 }
+
+final class DictionariesTests: XCTestCase {
+    func testYourLayoutsHaveDictionaries() {
+        let langs = Dictionaries.layoutLanguages()
+        XCTAssertTrue(langs.contains("ru") && langs.contains("en"))
+        for l in langs { XCTAssertTrue(Dictionaries.hasDictionary(l), "\(l) has a macOS dictionary") }
+        XCTAssertFalse(Dictionaries.hasDictionary("be"), "Belarusian is not built into macOS")
+    }
+
+    /// Downloads a real dictionary from GitHub into a temp folder (not ~/Library/Spelling).
+    func testDownloadsBelarusian() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kurenai-dict-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try await Dictionaries.fetch("be", into: dir)
+        let names = try FileManager.default.contentsOfDirectory(atPath: dir.path).sorted()
+        XCTAssertEqual(names, ["be_BY.aff", "be_BY.dic"])
+        let dic = try String(contentsOf: dir.appendingPathComponent("be_BY.dic"), encoding: .utf8)
+        XCTAssertTrue(dic.contains("прывітанне") || dic.split(separator: "\n").count > 100_000)
+    }
+
+    func testUnknownLanguageFails() async {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kurenai-dict-x")
+        do { try await Dictionaries.fetch("zz", into: dir); XCTFail("should fail") } catch {}
+    }
+}
+
+final class ManualFixTests: XCTestCase {
+    func testJargonAndNamesAlwaysChange() throws {
+        // Double Shift is manual: real words, slang and names change too.
+        let en = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.ABC"))
+        let ru = try XCTUnwrap(KeyboardLayout.installed("com.apple.keylayout.RussianWin"))
+        XCTAssertEqual(LayoutFix.convert("hello", from: en, to: ru), "руддщ")
+        XCTAssertEqual(LayoutFix.convert("rhbgjnf", from: en, to: ru), "крипота")
+        XCTAssertEqual(LayoutFix.convert("ьуь", from: ru, to: en), "mem")
+    }
+}

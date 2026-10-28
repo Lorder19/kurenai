@@ -128,3 +128,10 @@
 "Двойной правый Shift меняет раскладку" = "Double right Shift fixes the layout";
 "Раскладка" = "Keyboard layout";
 "Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если исправлять нечего, просто сменится язык. Слова, которые вы трижды возвращали обратно, Kurenai запоминает и больше не трогает." = "Tap the right Shift twice: the selection or the last word is retyped in the other layout, and if there's nothing to fix, the input language just switches. Words you changed back three times are remembered and left alone.";
+"Словари" = "Dictionaries";
+"нет словаря: %@ (бесплатно, с GitHub LibreOffice)" = "no dictionary: %@ (free, from LibreOffice on GitHub)";
+"не удалось скачать: %@" = "couldn't download: %@";
+"Раскладки не найдены" = "No keyboard layouts found";
+"Скачать словарь: %@?" = "Download a dictionary for %@?";
+"Для этих раскладок в macOS нет словаря. Kurenai может скачать бесплатный словарь LibreOffice с GitHub в ~/Library/Spelling, его увидят и другие программы. Двойной Shift работает и без него." = "macOS has no spelling dictionary for these layouts. Kurenai can download the free LibreOffice dictionary from GitHub into ~/Library/Spelling, where other apps can use it too. Double Shift works without it.";
+"Дважды нажмите правый Shift: выделенный текст или последнее слово перепечатается в другой раскладке, а если текста нет, просто сменится язык. Словари нужны, чтобы при трёх и больше раскладках выбрать правильную." = "Tap the right Shift twice: the selection or the last word is retyped in the other layout, and with no text the input language just switches. Dictionaries help pick the right layout when you have three or more.";
