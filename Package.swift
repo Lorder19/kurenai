@@ -8,6 +8,7 @@ let package = Package(
         .executableTarget(
             name: "Kurenai",
             path: "Sources/Kurenai",
+            exclude: ["Data"],
             swiftSettings: [.unsafeFlags(["-Osize"])]
         ),
         .testTarget(name: "KurenaiTests", dependencies: ["Kurenai"], path: "Tests/KurenaiTests")

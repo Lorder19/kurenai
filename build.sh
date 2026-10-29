@@ -9,6 +9,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/Kurenai" "$APP/Contents/MacOS/Kurenai"
 cp Icon/Kurenai.icns "$APP/Contents/Resources/Kurenai.icns"
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
+cp Sources/Kurenai/Data/*.json "$APP/Contents/Resources/"  # trigram tables, see THIRD_PARTY.md
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

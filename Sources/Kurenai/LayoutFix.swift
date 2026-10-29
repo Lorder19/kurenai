@@ -60,8 +60,17 @@ struct KeyboardLayout {
     /// The numeric keypad types the same digits in every layout, so it says nothing about which one was used.
     private static let keypad: Set<UInt16> = Set(65...92)
 
-    /// Keyboard layouts the user can switch between in the menu bar.
-    static func enabled() -> [(KeyboardLayout, TISInputSource)] { list(installed: false) }
+    /// Keyboard layouts the user can switch between in the menu bar. Cached for a few seconds: reading
+    /// every key of every layout is too slow to do on each keystroke.
+    static func enabled() -> [(KeyboardLayout, TISInputSource)] {
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        if let c = cache, Date().timeIntervalSince(c.at) < 5 { return c.value }
+        let value = list(installed: false)
+        cache = (value, Date())
+        return value
+    }
+    private static var cache: (value: [(KeyboardLayout, TISInputSource)], at: Date)?
+    private static let cacheLock = NSLock()
 
     /// Every keyboard layout macOS has, enabled or not (for tests).
     static func installed(_ id: String) -> KeyboardLayout? { list(installed: true, id: id).first?.0 }
@@ -228,6 +237,12 @@ final class LayoutMemory {
     }
 
     func isKept(_ word: String) -> Bool { (reverts[Self.key(word)] ?? 0) >= Self.threshold }
+
+    /// A remembered word starts with this: don't flip a word you're still typing towards one you keep.
+    func keepsPrefix(_ prefix: String) -> Bool {
+        let p = Self.key(prefix)
+        return p.count >= 2 && reverts.contains { $0.value >= Self.threshold && $0.key.count > p.count && $0.key.hasPrefix(p) }
+    }
 
     /// An automatic fix you undid right away: the word was right as typed.
     func noteAutoRevert(_ word: String) {

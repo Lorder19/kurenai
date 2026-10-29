@@ -405,8 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if let way = LayoutFix.direction(for: word, among: layouts.map(\.0), words: dictionary) {
                 let fixed = LayoutFix.convert(word, from: way.from, to: way.to)
                 if fixed != word, replaceByTyping(old: word + tail, new: fixed + tail) {
-                    typed = TypedWord()
-                    for c in fixed { _ = typed.feed(.char(c)) }
+                    typing.reset()
                     layoutMemory.noteFix(original: word, fixed: fixed)
                     if switchesLayout, let source = layouts.first(where: { $0.0.id == way.to.id })?.1 { TISSelectInputSource(source) }
                     done?(fixed)
@@ -481,120 +480,106 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if alert.runModal() == .alertFirstButtonReturn { dicts.downloadMissing() }
     }
 
-    // MARK: Double right Shift
+    // MARK: Typing: double right Shift and fixing the layout as you type
 
+    private let keyTap = KeyTap()
     private var shiftDetector = DoubleShiftDetector()
-    private var shiftMonitor: Any?
 
     /// Apps that use Shift-Shift themselves (JetBrains Search Everywhere).
     private static let shiftShiftApps = ["com.jetbrains.", "com.google.android.studio"]
 
-    private func startDoubleShift() {
-        shiftMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown]) { [weak self] e in
-            self?.handleShift(e)
-        }
-    }
-
-    private func handleShift(_ e: NSEvent) {
-        if e.type == .keyDown { handleTyping(e) } else if e.type != .flagsChanged { typed = TypedWord(); finished = nil }
-        guard e.type == .flagsChanged, e.keyCode == UInt16(kVK_RightShift) else { shiftDetector.other(); return }
-        let others = e.modifierFlags.intersection([.command, .option, .control, .function])
-        guard others.isEmpty else { shiftDetector.other(); return }
-        guard shiftDetector.shift(down: e.modifierFlags.contains(.shift), at: e.timestamp) else { return }
-        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
-        // In a password field macOS turns on Secure Input; don't read or retype anything there.
-        guard Settings.shared.doubleShift, !IsSecureEventInputEnabled(),
-              !Self.shiftShiftApps.contains(where: front.hasPrefix) else { return }
-        // Right after an automatic fix, double Shift undoes it.
-        if undoLastAutoFix() { return }
-        fixLayout(orSwitch: true)
-    }
-
-    // MARK: Fix while typing
-
-    private var typed = TypedWord()
-    /// The word just ended with a Space, valid until the next key: what double Shift fixes when the app
-    /// gives no access to its text.
-    private var finished: (word: String, end: String, keys: Int)?
-
-    /// The word being typed, or the one you just finished with a Space (and the spaces after it).
-    private func lastTypedWord() -> (String, String)? {
-        if !typed.text.isEmpty { return (typed.text, "") }
-        if let f = finished, f.keys == keysSeen { return (f.word, f.end) }
-        return nil
-    }
-    /// Every key you press; lets a delayed fix notice that you've kept typing.
-    private var keysSeen = 0
-    private var lastAuto: (original: String, fixed: String, end: String, from: String, pid: pid_t, at: Date)?
-
-    /// Where autocorrect would get in the way: shells, code, remote machines.
+    /// Where fixing while typing would get in the way: shells, code, remote machines.
     private static let noAutoFixApps = [
         "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.", "net.kovidgoyal.kitty", "com.mitchellh.ghostty",
         "io.alacritty", "co.zeit.hyper", "com.apple.dt.Xcode", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92",
         "com.jetbrains.", "com.google.android.studio", "com.sublimetext.", "dev.zed.Zed", "com.panic.Nova",
     ]
+    /// Chromium-based apps apply typed text unreliably in mid-word; there we only fix at the Space.
+    private static let chromiumApps = [
+        "com.google.Chrome", "com.brave.Browser", "com.microsoft.edgemac", "company.thebrowser.Browser",
+        "com.vivaldi.Vivaldi", "com.operasoftware.Opera", "com.tinyspeck.slackmacgap", "com.hnc.Discord",
+    ]
 
-    private func handleTyping(_ e: NSEvent) {
-        keysSeen += 1
-        let mods = e.modifierFlags.intersection([.command, .control, .option, .function])
-        switch Int(e.keyCode) {
-        case kVK_Delete: _ = typed.feed(.backspace); return
-        case kVK_Space, kVK_Return, kVK_Tab, kVK_ANSI_KeypadEnter:
-            guard mods.isEmpty, let done = typed.feed(.boundary(e.keyCode == UInt16(kVK_Space) ? " " : e.keyCode == UInt16(kVK_Tab) ? "\t" : "\n")) else {
-                typed = TypedWord(); return
-            }
-            // Return and Tab often submit or move focus; only Space is safe to retype after.
-            if e.keyCode == UInt16(kVK_Space) {
-                finished = (done.word, String(done.end), keysSeen)
-                autoFix(done.word, end: done.end)
-            } else { finished = nil }
-            return
-        default: break
-        }
-        guard mods.isEmpty, let chars = e.characters, chars.count == 1, let c = chars.first,
-              !c.isWhitespace, c.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value < 0xF700 }) else {
-            typed = TypedWord(); return   // arrows, Escape, shortcuts: we no longer know where the cursor is
-        }
-        _ = typed.feed(.char(c))
-        lastAuto = nil
-    }
+    private lazy var typing = TypingEngine(
+        layouts: { KeyboardLayout.enabled().map(\.0) },
+        currentLayout: { [weak self] in self?.currentLayoutID() },
+        words: dictionary, memory: layoutMemory)
 
-    private func autoFix(_ word: String, end: Character) {
-        guard Settings.shared.autoFix, !fixingLayout, !IsSecureEventInputEnabled(),
-              let app = NSWorkspace.shared.frontmostApplication, app != .current,
-              !Paster.isRemoteDesktop(app),
-              !Self.noAutoFixApps.contains(where: { (app.bundleIdentifier ?? "").hasPrefix($0) }) else { return }
-        let all = KeyboardLayout.enabled()
-        guard let current = currentLayoutID(), let from = all.first(where: { $0.0.id == current })?.0,
-              let (fixed, to) = AutoFix.decide(word: word, typedIn: from, layouts: all.map(\.0), words: dictionary, memory: layoutMemory)
-        else { return }
-        let endText = String(end)
-        let keysAtSpace = keysSeen
-        // The app may not have inserted the Space yet; try right away and keep trying for a moment.
-        attemptAutoFix(app: app, old: word + endText, new: fixed + endText, keysAtSpace: keysAtSpace, tries: 15) { [weak self] ok in
-            guard ok, let self else { return }
-            if let source = all.first(where: { $0.0.id == to.id })?.1 { TISSelectInputSource(source) }
-            self.lastAuto = (word, fixed, endText, from.id, app.processIdentifier, Date())
+    private func startDoubleShift() {
+        keyTap.handler = { [weak self] event, type, post in self?.handleKeyEvent(event, type, post) ?? true }
+        // Without Accessibility the tap can't be created yet; try again until it's granted.
+        if !keyTap.start() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.startDoubleShift() }
         }
     }
 
-    private func attemptAutoFix(app: NSRunningApplication, old: String, new: String, keysAtSpace: Int, tries: Int,
-                                done: @escaping (Bool) -> Void) {
-        if let field = FocusedText(pid: app.processIdentifier), field.hasText {
-            if field.isSecure { done(false); return }
-            if field.replace(old, nearCaretWith: new) { done(true); return }
-            guard tries > 0 else { done(false); return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-                self?.attemptAutoFix(app: app, old: old, new: new, keysAtSpace: keysAtSpace, tries: tries - 1, done: done)
+    /// Returns false to swallow the key.
+    private func handleKeyEvent(_ e: CGEvent, _ type: CGEventType, _ post: (CGEvent) -> Void) -> Bool {
+        switch type {
+        case .flagsChanged: handleShift(e, post); return true
+        case .keyDown: break
+        default: shiftDetector.other(); _ = typing.handle(.init(breaksWord: true)); return true
+        }
+        shiftDetector.other()
+        let front = NSWorkspace.shared.frontmostApplication
+        let id = front?.bundleIdentifier ?? ""
+        guard Settings.shared.autoFix, front != .current, !IsSecureEventInputEnabled(), !Paster.isRemoteDesktop(front),
+              !Self.noAutoFixApps.contains(where: id.hasPrefix) else { typing.reset(); return true }
+        typing.midWord = !Self.chromiumApps.contains(where: id.hasPrefix)
+
+        let code = Int(e.getIntegerValueField(.keyboardEventKeycode))
+        let mods = e.flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskSecondaryFn])
+        var key = TypingEngine.Key()
+        switch code {
+        case kVK_Delete: key.isBackspace = true
+        case kVK_Space: if mods.isEmpty { key.isBoundary = true } else { key.breaksWord = true }
+        default:
+            var length = 0
+            var chars = [UniChar](repeating: 0, count: 4)
+            e.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &length, unicodeString: &chars)
+            let s = String(utf16CodeUnits: chars, count: length)
+            if mods.isEmpty, s.count == 1, let c = s.first, !c.isWhitespace,
+               c.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value < 0xF700 }) {
+                key.char = c
+            } else {
+                key.breaksWord = true   // Return, Tab, arrows, Escape, shortcuts
             }
+        }
+        guard case let .replace(delete, text, layout) = typing.handle(key) else { return true }
+        (KeyTap.backspaces(delete) + KeyTap.text(text)).forEach(post)
+        if let layout, let source = KeyboardLayout.enabled().first(where: { $0.0.id == layout })?.1 {
+            TISSelectInputSource(source)
+        }
+        return false
+    }
+
+    private func handleShift(_ e: CGEvent, _ post: (CGEvent) -> Void) {
+        let code = Int(e.getIntegerValueField(.keyboardEventKeycode))
+        guard code == kVK_RightShift else { shiftDetector.other(); return }
+        guard e.flags.intersection([.maskCommand, .maskAlternate, .maskControl, .maskSecondaryFn]).isEmpty else {
+            shiftDetector.other(); return
+        }
+        let t = ProcessInfo.processInfo.systemUptime
+        guard shiftDetector.shift(down: e.flags.contains(.maskShift), at: t) else { return }
+        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        // In a password field macOS turns on Secure Input; don't read or retype anything there.
+        guard Settings.shared.doubleShift, !IsSecureEventInputEnabled(),
+              !Self.shiftShiftApps.contains(where: front.hasPrefix) else { return }
+        // Right after an automatic fix, double Shift undoes it and remembers the word.
+        if let u = typing.undo() {
+            (KeyTap.backspaces(u.delete) + KeyTap.text(u.text)).forEach(post)
+            if let source = KeyboardLayout.enabled().first(where: { $0.0.id == u.layout })?.1 { TISSelectInputSource(source) }
+            layoutMemory.noteAutoRevert(u.original)
             return
         }
-        // No Accessibility text here: Backspace over the word, but only if you haven't typed anything since,
-        // otherwise we'd erase your new letters. Skipping a fix is better than breaking text.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
-            guard let self, self.keysSeen == keysAtSpace else { done(false); return }
-            done(self.replaceByTyping(old: old, new: new))
-        }
+        typing.reset()
+        // Manual fix runs after this event is done (it may copy, paste and read the field).
+        DispatchQueue.main.async { [weak self] in self?.fixLayout(orSwitch: true) }
+    }
+
+    /// The word being typed, for double Shift in apps that don't expose their text.
+    private func lastTypedWord() -> (String, String)? {
+        typing.word.isEmpty ? nil : (typing.word, "")
     }
 
     /// Replaces the text just before the cursor: Accessibility when possible, otherwise Backspace + paste.
@@ -618,17 +603,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.monitor.ignoreCurrentChange()
             self?.fixingLayout = false
         }
-        return true
-    }
-
-    /// Double Shift right after an automatic fix: put the word back, switch back, and remember it.
-    private func undoLastAutoFix() -> Bool {
-        guard let last = lastAuto, Date().timeIntervalSince(last.at) < 10, typed.text.isEmpty,
-              let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier == last.pid else { return false }
-        lastAuto = nil
-        replaceBeforeCaret(in: app, old: last.fixed + last.end, new: last.original + last.end)
-        if let source = KeyboardLayout.enabled().first(where: { $0.0.id == last.from })?.1 { TISSelectInputSource(source) }
-        layoutMemory.noteAutoRevert(last.original)
         return true
     }
 
