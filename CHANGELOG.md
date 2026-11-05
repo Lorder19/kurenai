@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 (November 2026)
+
+- Typed in the wrong layout? Kurenai fixes it as you type, like Punto Switcher. "ghbdtn" turns into "привет" by the fourth letter and the layout switches, so you just keep typing. Words it can't judge mid-word are checked again at the Space.
+- Tap the right Shift twice to retype the selection or the last word in the other layout yourself, slang and names included. With no text it just switches the layout.
+- Fixed one by mistake? Tap the right Shift twice right away to get it back. Undo the same word a few times and Kurenai leaves it alone from then on.
+- The mapping comes from your own layouts and keyboard (ABC, Russian, Russian PC, Ukrainian and others, ISO or ANSI), not from a built-in table.
+- If a layout's language has no spelling dictionary in macOS, Kurenai offers to download a free one.
+- Off in terminals, code editors, remote desktop and password fields. Both features can be turned off in Settings.
+- Security: the data folder is readable only by you, the encryption key file is created private from the start, and updates are checked more strictly before they replace the app.
+
 ## 0.4.0 (October 2026)
 
 - The app is now called Kurenai (紅, "crimson"). Same app, same shortcuts.

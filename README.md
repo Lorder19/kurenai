@@ -16,7 +16,7 @@
 
 <p align="center"><img src="docs/mascot/kurenai.png" width="180" alt="Kurenai, the mascot"></p>
 
-I used CleanClip for years. After a macOS update it started crashing, and the alternatives I tried either wanted a subscription or did too much. So I wrote my own. Kurenai does three things and tries to stay out of the way.
+I used CleanClip for years. After a macOS update it started crashing, and the alternatives I tried either wanted a subscription or did too much. So I wrote my own. Kurenai keeps what you copy, fixes text typed in the wrong layout, and tries to stay out of the way.
 
 ## What it does
 
@@ -30,6 +30,8 @@ Press ⌘' for the paste queue. Copy a few things in a row, then every ⌘V past
   <img src="docs/screenshots/queue.png" width="260" alt="Paste queue">
   <img src="docs/screenshots/list.png" width="260" alt="Saved lists">
 </p>
+
+Typed a word in the wrong layout? Kurenai notices by the fourth letter, retypes it ("ghbdtn" → "привет") and switches the layout, so you keep typing. Tap the right Shift twice to fix the selection or the last word yourself, or to undo a fix you didn't want.
 
 All shortcuts can be changed in Settings. The panels float over whatever you're working in and don't take focus away from it, so the paste lands where you expect.
 
