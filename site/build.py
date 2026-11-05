@@ -123,6 +123,8 @@ def page(t):
       <div class="card reveal"><span class="k">⌘;</span><h3>{t['f_hist']}</h3><p>{t['f_hist_t']}</p></div>
       <div class="card reveal" style="--d:.08s"><span class="k">⌘I</span><h3>{t['f_list']}</h3><p>{t['f_list_t']}</p></div>
       <div class="card reveal" style="--d:.16s"><span class="k">⌘'</span><h3>{t['f_queue']}</h3><p>{t['f_queue_t']}</p></div>
+      <div class="card wide reveal"><div><span class="k">⇧ ⇧</span><h3>{t['f_layout']}</h3><p>{t['f_layout_t']}</p></div>
+        <div class="typer" aria-hidden="true"><div class="typer-bar"><span>TextEdit</span><b id="typer-lang">EN</b></div><div class="typer-text"><span id="typer"></span><span class="cur"></span></div></div></div>
       <div class="card wide reveal"><div><span class="k">⇧⌘C</span><h3>{t['f_split']}</h3><p>{t['f_split_t']}</p></div>
         <img src="{p}split.gif" width="800" height="450" loading="lazy" alt="{t['split_alt']}"></div>
     </div>
@@ -207,6 +209,28 @@ def script(t):
   const caps = [...document.querySelectorAll('.cap')];
   if (!still) {{ let k = 0; setInterval(() => {{ const c = caps[k++ % caps.length]; c.classList.add('down'); setTimeout(() => c.classList.remove('down'), 220); }}, 1100); }}
   if (!mac) caps.forEach(c => c.querySelector('kbd').textContent = keyfix(c.querySelector('kbd').textContent));
+
+  // the layout-fix demo: typing in the wrong layout, flipped on the 4th letter
+  const typer = document.getElementById('typer'), lang = document.getElementById('typer-lang');
+  const scenes = [
+    ['EN', ['g','gh','ghb','ghbd'], 'RU', ['прив','приве','привет','привет ','привет к','привет ка','привет как']],
+    ['RU', ['р','ру','руд','рудд','руддщ','руддщ '], 'EN', ['hello ','hello w','hello wo','hello wor','hello worl','hello world']],
+  ];
+  let sc = 0;
+  function play() {{
+    const [l1, a, l2, b] = scenes[sc++ % scenes.length];
+    const frames = a.map(t => [l1, t, false]).concat(b.map((t, i) => [l2, t, i === 0]));
+    let i = 0;
+    const step = () => {{
+      if (i >= frames.length) {{ setTimeout(play, 1800); return; }}
+      const [l, t, flip] = frames[i++];
+      lang.textContent = l; typer.textContent = t;
+      typer.classList.toggle('flip', flip);
+      setTimeout(step, flip ? 650 : 170);
+    }};
+    step();
+  }}
+  if (typer) {{ if (still) typer.textContent = 'привет как'; else setTimeout(play, 600); }}
 
   // live star count, the number in the page is the fallback
   fetch('https://api.github.com/repos/Lorder19/kurenai').then(r => r.ok ? r.json() : null)

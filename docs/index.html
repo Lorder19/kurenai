@@ -152,6 +152,12 @@ h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.025em; line-height: 1.
 .card p { margin: 0; color: var(--soft); font-size: 16px; }
 .wide { grid-column: 1 / -1; display: grid; grid-template-columns: .8fr 1.2fr; gap: 30px; align-items: center; padding: 30px; }
 .wide img { border-radius: 12px; display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.typer { background: #121011; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); min-height: 170px; }
+.typer-bar { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; background: #1c1a1b; color: #8d857d; font-size: 12px; font-weight: 600; }
+.typer-bar b { background: var(--red); color: #fff; padding: 2px 8px; border-radius: 6px; font: 700 11px/1.4 ui-monospace, Menlo, monospace; }
+.typer-text { padding: 26px 22px; color: #f1ebe3; font: 500 28px/1.3 ui-monospace, "SF Mono", Menlo, monospace; }
+.typer-text #typer { transition: color .3s; }
+.typer-text #typer.flip { color: #ff6b6b; text-shadow: 0 0 18px rgba(224,58,69,.6); }
 .shots { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: center; margin-top: 40px; }
 .shots img { width: 100%; height: auto; display: block; }
 
@@ -296,7 +302,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wr
     <div class="copy">
       <span class="eyebrow"><i></i>Free · Open source · macOS 14+</span>
       <h1>Your clipboard,<br><em>with a sharp memory.</em></h1>
-      <p class="lede">Clipboard history for the Mac. Small, free, open source.</p>
+      <p class="lede">Clipboard history for the Mac that also fixes text typed in the wrong layout. Small, free, open source.</p>
       <div class="actions">
         <a class="btn" href="https://github.com/Lorder19/kurenai/releases/latest"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-.9-2.4-3.9zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg>Download for macOS</a>
         <a class="ghost" href="#play">Try it in the browser <span>→</span></a>
@@ -320,7 +326,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wr
       <div class="chip c3"><b>3</b>221B Baker Street, London</div>
     </div>
   </div>
-  <div class="wrap"><div class="keys" id="keys"><div class="cap"><kbd>⌘;</kbd>history</div><div class="cap"><kbd>⌘1–9</kbd>paste instantly</div><div class="cap"><kbd>⌘I</kbd>saved lists</div><div class="cap"><kbd>⌘'</kbd>paste queue</div><div class="cap"><kbd>⇧⌘C</kbd>split into lines</div></div></div>
+  <div class="wrap"><div class="keys" id="keys"><div class="cap"><kbd>⌘;</kbd>history</div><div class="cap"><kbd>⌘1–9</kbd>paste instantly</div><div class="cap"><kbd>⌘I</kbd>saved lists</div><div class="cap"><kbd>⌘'</kbd>paste queue</div><div class="cap"><kbd>⇧⌘C</kbd>split into lines</div><div class="cap"><kbd>⇧ ⇧</kbd>fix layout</div></div></div>
 </header>
 
 <main>
@@ -356,6 +362,8 @@ footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wr
       <div class="card reveal"><span class="k">⌘;</span><h3>History</h3><p>Text and images, newest first, with search. <kbd>⌘1</kbd> to <kbd>⌘9</kbd> pastes one of the top nine without touching the mouse.</p></div>
       <div class="card reveal" style="--d:.08s"><span class="k">⌘I</span><h3>Saved lists</h3><p>For things you paste a lot, like replies or addresses. A digit pastes a line.</p></div>
       <div class="card reveal" style="--d:.16s"><span class="k">⌘'</span><h3>Paste queue</h3><p>Copy a few things, then each <kbd>⌘V</kbd> pastes the next one.</p></div>
+      <div class="card wide reveal"><div><span class="k">⇧ ⇧</span><h3>Wrong layout? Fixed as you type</h3><p>Type “ghbdtn” and by the fourth letter it is already “привет”, with the layout switched, so you just keep typing. Tap the right Shift twice to fix a word yourself or to undo a fix. Works with the layouts you have: Russian, Ukrainian and others.</p></div>
+        <div class="typer" aria-hidden="true"><div class="typer-bar"><span>TextEdit</span><b id="typer-lang">EN</b></div><div class="typer-text"><span id="typer"></span><span class="cur"></span></div></div></div>
       <div class="card wide reveal"><div><span class="k">⇧⌘C</span><h3>Split into lines</h3><p>Select a column and press ⇧⌘C. Kurenai cuts it into lines and queues them, which is great for moving a spreadsheet column into a web form.</p></div>
         <img src="split.gif" width="800" height="450" loading="lazy" alt="Kurenai slices a selected column into four lines for the paste queue"></div>
     </div>
@@ -389,7 +397,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wr
 
 <script>
 (() => {
-  const T = {"says": ["I remember everything you copy.", "Passwords? Never saved.", "⌘V. Next. ⌘V. Next.", "No account. No tracking."], "kr": {"start": "Copy a line on the left. I'll keep it.", "copied": "Got it. Press ⌘; in the box to see it again.", "qon": "Queue's on. Copy a few lines, I'll keep them in order.", "left": "{n} left. Keep pressing ⌘V.", "done": "All pasted. Not bad.", "qoff": "That's a normal paste. Turn the queue on first.", "none": "Nothing like that in here.", "clear": "Clean slate."}, "hint_win": "Turn on the paste queue, copy a few lines, then press Ctrl+V here again and again.", "nothing": "Nothing found", "copy_first": "Copy something on the left first"}, P = '';
+  const T = {"says": ["I remember everything you copy.", "ghbdtn? I mean привет.", "Passwords? Never saved.", "⌘V. Next. ⌘V. Next.", "No account. No tracking."], "kr": {"start": "Copy a line on the left. I'll keep it.", "copied": "Got it. Press ⌘; in the box to see it again.", "qon": "Queue's on. Copy a few lines, I'll keep them in order.", "left": "{n} left. Keep pressing ⌘V.", "done": "All pasted. Not bad.", "qoff": "That's a normal paste. Turn the queue on first.", "none": "Nothing like that in here.", "clear": "Clean slate."}, "hint_win": "Turn on the paste queue, copy a few lines, then press Ctrl+V here again and again.", "nothing": "Nothing found", "copy_first": "Copy something on the left first"}, P = '';
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const keyfix = s => mac ? s : s.replace(/⌘/g, 'Ctrl+');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -430,6 +438,28 @@ footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wr
   const caps = [...document.querySelectorAll('.cap')];
   if (!still) { let k = 0; setInterval(() => { const c = caps[k++ % caps.length]; c.classList.add('down'); setTimeout(() => c.classList.remove('down'), 220); }, 1100); }
   if (!mac) caps.forEach(c => c.querySelector('kbd').textContent = keyfix(c.querySelector('kbd').textContent));
+
+  // the layout-fix demo: typing in the wrong layout, flipped on the 4th letter
+  const typer = document.getElementById('typer'), lang = document.getElementById('typer-lang');
+  const scenes = [
+    ['EN', ['g','gh','ghb','ghbd'], 'RU', ['прив','приве','привет','привет ','привет к','привет ка','привет как']],
+    ['RU', ['р','ру','руд','рудд','руддщ','руддщ '], 'EN', ['hello ','hello w','hello wo','hello wor','hello worl','hello world']],
+  ];
+  let sc = 0;
+  function play() {
+    const [l1, a, l2, b] = scenes[sc++ % scenes.length];
+    const frames = a.map(t => [l1, t, false]).concat(b.map((t, i) => [l2, t, i === 0]));
+    let i = 0;
+    const step = () => {
+      if (i >= frames.length) { setTimeout(play, 1800); return; }
+      const [l, t, flip] = frames[i++];
+      lang.textContent = l; typer.textContent = t;
+      typer.classList.toggle('flip', flip);
+      setTimeout(step, flip ? 650 : 170);
+    };
+    step();
+  }
+  if (typer) { if (still) typer.textContent = 'привет как'; else setTimeout(play, 600); }
 
   // live star count, the number in the page is the fallback
   fetch('https://api.github.com/repos/Lorder19/kurenai').then(r => r.ok ? r.json() : null)
