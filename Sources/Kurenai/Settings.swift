@@ -170,6 +170,13 @@ struct SettingsView: View {
                     }
                 Toggle(L("Проверять обновления раз в день"), isOn: $checkUpdates)
                     .onChange(of: checkUpdates) { _, on in updater.enabled = on }
+                Toggle(L("Бета-версии"), isOn: Binding(get: { updater.betas }, set: { on in
+                    if !on { updater.betas = false; return }
+                    // Testers only: ask for the code; a wrong one leaves the switch off.
+                    if let code = Prompt.text(title: L("Код доступа к бета-версиям")), updater.unlockBetas(code: code) {
+                        updater.check()
+                    } else { NSSound.beep() }
+                }))
                 HStack {
                     Button(L("Проверить сейчас")) { updater.check() }
                     if let r = updater.lastResult { Text(r).foregroundStyle(.secondary) }

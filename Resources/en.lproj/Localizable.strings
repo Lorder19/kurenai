@@ -140,3 +140,5 @@
 "Собрать отчёт для разработчика…" = "Collect a Report for the Developer…";
 "Отчёт готов" = "Report ready";
 "Файл лежит на Рабочем столе и уже выделен в Finder. Отправьте его разработчику. В нём только служебный журнал и отчёты о сбоях, без истории и того, что вы печатали." = "The file is on your Desktop and selected in Finder. Send it to the developer. It holds only the diagnostic log and crash reports, not your history or anything you typed.";
+"Бета-версии" = "Beta versions";
+"Код доступа к бета-версиям" = "Beta access code";

@@ -386,3 +386,26 @@ final class LogTests: XCTestCase {
         XCTAssertFalse(listing.contains("store.json"), "history never goes into a report")
     }
 }
+
+final class UpdaterBetaTests: XCTestCase {
+    func testVersionOrder() {
+        XCTAssertTrue(Updater.isNewer("0.5.1-beta.1", than: "0.5.0"))
+        XCTAssertTrue(Updater.isNewer("0.5.1-beta.2", than: "0.5.1-beta.1"))
+        XCTAssertTrue(Updater.isNewer("0.5.1", than: "0.5.1-beta.2"), "the release beats its betas")
+        XCTAssertFalse(Updater.isNewer("0.5.1-beta.3", than: "0.5.1"))
+        XCTAssertFalse(Updater.isNewer("0.5.0", than: "0.5.0"))
+        XCTAssertTrue(Updater.isNewer("0.6.0-beta.1", than: "0.5.1"))
+        XCTAssertTrue(Updater.isNewer("0.5.10", than: "0.5.9"))
+    }
+
+    func testBetaCode() {
+        let u = Updater.shared
+        let was = u.betas
+        defer { u.betas = was }
+        u.betas = false
+        XCTAssertFalse(u.unlockBetas(code: "wrong"))
+        XCTAssertFalse(u.betas)
+        XCTAssertTrue(u.unlockBetas(code: " krn-vw48de "), "case and spaces don't matter")
+        XCTAssertTrue(u.betas)
+    }
+}
