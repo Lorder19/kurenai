@@ -35,6 +35,7 @@ final class Dictionaries: ObservableObject {
         let langs = Self.layoutLanguages().map(Language.init(code:))
         installed = langs.filter { Self.hasDictionary($0.code) }
         missing = langs.filter { !Self.hasDictionary($0.code) }
+        Log.write("dictionaries: have \(installed.map(\.code)), missing \(missing.map(\.code))", "dict")
     }
 
     /// Downloads the missing dictionaries. `done` gets the languages that couldn't be found or fetched.

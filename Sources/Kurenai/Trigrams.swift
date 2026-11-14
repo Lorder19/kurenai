@@ -35,7 +35,7 @@ final class Trigrams {
             if let data = try? Data(contentsOf: url),
                let dict = try? JSONDecoder().decode([String: Double].self, from: data) { return dict }
         }
-        NSLog("Kurenai: no \(name).json, layout detection mid-word is off")
+        Log.write("no \(name).json, layout detection mid-word is off", "typing")
         return [:]
     }
 }

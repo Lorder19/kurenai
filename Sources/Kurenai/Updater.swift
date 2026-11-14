@@ -179,6 +179,7 @@ final class Updater: ObservableObject {
     }
 
     private func fail(_ error: Error, release: Release?) {
+        Log.write("update failed: \(error)", "update")
         NSApp.activate()
         let alert = NSAlert()
         alert.messageText = L("Не получилось обновить")

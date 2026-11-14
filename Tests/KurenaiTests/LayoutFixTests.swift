@@ -372,3 +372,17 @@ final class AutoFixTests: XCTestCase {
         XCTAssertNil(t.feed(.boundary(" ")))
     }
 }
+
+final class LogTests: XCTestCase {
+    func testReportZipsLogAndSystemInfo() throws {
+        Log.write("test line from LogTests")
+        let zip = try XCTUnwrap(Log.collectReport())
+        defer { try? FileManager.default.removeItem(at: zip) }
+        let out = Process(); out.executableURL = URL(fileURLWithPath: "/usr/bin/unzip"); out.arguments = ["-l", zip.path]
+        let pipe = Pipe(); out.standardOutput = pipe; try out.run(); out.waitUntilExit()
+        let listing = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        XCTAssertTrue(listing.contains("system.txt"))
+        XCTAssertTrue(listing.contains("kurenai.log"))
+        XCTAssertFalse(listing.contains("store.json"), "history never goes into a report")
+    }
+}

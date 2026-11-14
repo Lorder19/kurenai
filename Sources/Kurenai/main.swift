@@ -24,17 +24,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Test hook, debug builds only: release builds must not let another process drive Accessibility through us.
         if let probe = Demo.argument("KurenaiFixLayoutPid").flatMap(Int32.init), probe > 0 { runLayoutFixProbe(pid: probe); return }
         #endif
-        if Self.anotherInstanceKeepsRunning() { NSApp.terminate(nil); return }
-        if AppMover.renameLegacyBundleIfNeeded() { return }
-        if AppMover.offerMoveIfNeeded() { return }
+        Log.installCrashHooks()
+        Log.write("launch: " + Log.systemSummary())
+        if Self.anotherInstanceKeepsRunning() { Log.write("launch: another copy is running, quitting"); NSApp.terminate(nil); return }
+        if AppMover.renameLegacyBundleIfNeeded() { Log.write("launch: renamed legacy bundle, relaunching"); return }
+        if AppMover.offerMoveIfNeeded() { Log.write("launch: moving to Applications"); return }
         AppMover.restoreLoginItem()
+        Log.write("launch: panels")
         buildPanels()
 
+        Log.write("launch: history \(store.history.count) items, \(store.lists.count) lists, encrypted \(Settings.shared.encryptStore)")
         monitor.onCopy = { [weak self] in self?.handleCopy($0) }
         monitor.onCopyImage = { [weak self] in self?.store.recordImage($0) }
         monitor.start()
 
+        Log.write("launch: shortcuts")
         registerShortcuts()
+        Log.write("launch: keyboard tap (autoFix \(Settings.shared.autoFix), doubleShift \(Settings.shared.doubleShift))")
         startDoubleShift()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.offerDictionaries() }
         Settings.shared.onEncryptionChange = { [weak self] in self?.queue.rewrite() }
@@ -49,9 +55,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.handleKey(event) ?? event
         }
 
+        Log.write("launch: menu bar")
         setupStatusItem()
         Updater.shared.start()
         let granted = Paster.ensureAccessibility(prompt: false)
+        Log.write("launch: done, accessibility \(granted)")
         UserDefaults.standard.set(granted, forKey: "accessibilityGranted")
         if !granted || !UserDefaults.standard.bool(forKey: "onboarded") { showOnboarding() }
     }
@@ -261,6 +269,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        Log.write("quit")
+        Log.flush()
         store.flush()
         if Settings.shared.clearOnQuit { queue.clear() } // the queue holds copied text too
         queue.flush()
@@ -508,7 +518,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func startDoubleShift() {
         keyTap.handler = { [weak self] event, type, post in self?.handleKeyEvent(event, type, post) ?? true }
         // Without Accessibility the tap can't be created yet; try again until it's granted.
-        if !keyTap.start() {
+        let started = keyTap.start()
+        Log.write("keyboard tap \(started ? "started" : "not available yet, retrying in 5 s")", "typing")
+        if !started {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.startDoubleShift() }
         }
     }
@@ -546,6 +558,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
         guard case let .replace(delete, text, layout) = typing.handle(key) else { return true }
+        Log.write("fix in \(id): delete \(delete), type \(text.count) chars, layout \(layout ?? "-")", "typing")
         (KeyTap.backspaces(delete) + KeyTap.text(text)).forEach(post)
         if let layout, let source = KeyboardLayout.enabled().first(where: { $0.0.id == layout })?.1 {
             TISSelectInputSource(source)
@@ -666,7 +679,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         write()
         monitor.ignoreCurrentChange()
         guard Paster.ensureAccessibility(prompt: false) else {
-            NSLog("Kurenai: paste blocked, no Accessibility permission (text left on clipboard)")
+            Log.write("paste blocked, no Accessibility permission", "paste")
             NSSound.beep()
             DispatchQueue.main.async { self.showOnboarding() }
             return
@@ -810,6 +823,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(menu, L("Настройки…"), "⌘,", #selector(openSettings))
         add(menu, L("Проверить обновления…"), nil, #selector(checkUpdates))
         add(menu, L("Показать файл данных"), nil, #selector(revealData))
+        add(menu, L("Собрать отчёт для разработчика…"), nil, #selector(collectReport))
         menu.addItem(.separator())
         add(menu, L("Выйти из Kurenai"), nil, #selector(quit))
     }
@@ -831,6 +845,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func menuList() { toggleList() }
     @objc private func menuQueue() { toggleQueue() }
     @objc private func revealData() { NSWorkspace.shared.activateFileViewerSelecting([store.fileURL]) }
+
+    /// Zips the diagnostic log and crash reports onto the Desktop, ready to send.
+    @objc private func collectReport() {
+        Log.write("report requested")
+        guard let zip = Log.collectReport() else { NSSound.beep(); return }
+        NSWorkspace.shared.activateFileViewerSelecting([zip])
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = L("Отчёт готов")
+        alert.informativeText = L("Файл лежит на Рабочем столе и уже выделен в Finder. Отправьте его разработчику. В нём только служебный журнал и отчёты о сбоях, без истории и того, что вы печатали.")
+        alert.runModal()
+    }
     @objc private func noop() {}
 
     /// Menu clicks don't take focus from the frontmost app, so the paste lands where you were typing.
